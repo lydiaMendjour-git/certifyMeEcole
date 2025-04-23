@@ -1,0 +1,79 @@
+.diplomes-container {
+  width: 50%; /* Largeur du conteneur */
+  max-width: 800px; /* Limite la largeur maximale */
+  height: 400px; /* Hauteur fixe */
+  margin: 0 auto; /* Centre horizontalement */
+  background-color: #ffffffa4;
+  border-radius: 16px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  overflow-y: auto; /* Permet de défiler verticalement */
+  
+  /* Positionnement ajusté */
+  position: absolute;
+  top: 73%; /* Positionne le conteneur légèrement plus haut sur la page */
+  left: 50%; /* Centre horizontalement */
+  transform: translate(-50%, -70%); /* Ajuste le centrage vertical */
+}
+
+/* Style du titre (facultatif) */
+.diplomes-container h2 {
+  margin-bottom: 20px;
+  color: #381167;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Ajustez la liste */
+.diplomes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.diplome-item {
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 12px;
+}
+
+.diplome-item:hover {
+  background-color: #e8eaf6;
+}
+
+/* Style pour le bouton "Valider" */
+.validate-button {
+  background-color: #381167;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.validate-button:hover {
+  background-color: #4c1c88;
+}
+
+/* Bouton "Valider tout" */
+.validate-all-button {
+  background-color: #381167;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  width: 100%;
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
+
+.validate-all-button:hover {
+  background-color: #4c1c88;
+}

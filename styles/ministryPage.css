@@ -1,0 +1,34 @@
+/* App Layout Styles */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  padding-top: 70px; /* Ajuster selon la hauteur du header */
+  background-color: transparent;  /* Couleur neutre */
+}
+
+.main-content {
+  padding: 20px;
+  margin-top: 20px;
+  flex-grow: 1;
+  background-color: transparent; /* Supprime le blanc */
+
+  margin: 0 auto; /* Centrer le contenu horizontalement */
+  width: 90%; /* Définir une largeur maximale */
+  max-width: 1200px; /* Limiter la largeur */
+  border-radius: 8px; /* Bords arrondis */
+}
+
+/* Footer Styles */
+footer {
+  position: absolute;
+  text-align: center;
+  bottom: 0;
+  width: 100%;
+  height: 2.5rem;
+  background-color: rgba(175, 210, 240, 0.95); /* Harmonisation avec le header */
+}
+
+footer p {
+  color: #381167; /* Texte violet cohérent */
+  font-weight: bold;
+}

@@ -1,0 +1,70 @@
+/* Header Styles */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2rem;
+  background-color: rgba(175, 210, 240, 0.95); /* Couleur bleu claire */
+  backdrop-filter: blur(10px); /* Flou d'arrière-plan */
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1); /* Ombre légère */
+  height: 70px; /* Hauteur ajustée */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  transition: all 0.3s ease; /* Transition pour les changements */
+}
+
+.header.scrolled {
+  height: 60px; /* Réduit la taille lors du défilement */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Titre du header */
+.header-title {
+  font-family: "McLaren", cursive;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #381167;
+  text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(90deg, #3498db, #381167); /* Dégradé violet à bleu */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+
+
+.icons-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* Espacement entre les icônes */
+}
+
+/* Styles communs pour les boutons d'icônes */
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  width: 2.5rem; /* Taille ajustée */
+  height: 2.5rem;
+  color: #4a5568;
+}
+
+.icon-button:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+}
+
+.icon {
+  width: 1.5rem; /* Taille réduite pour les icônes */
+  height: 1.5rem;
+  fill: currentColor;
+}

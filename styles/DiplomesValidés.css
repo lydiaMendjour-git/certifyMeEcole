@@ -1,0 +1,57 @@
+.validated-container {
+  width: 50%; /* Width of the container */
+  max-width: 800px; /* Limit the maximum width */
+  height: 370px; /* Fixed height */
+  margin: 0 auto; /* Center horizontally */
+  background-color: #ffffff71; /* Slightly transparent white */
+  border-radius: 16px; /* Rounded corners */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  padding: 20px;
+  overflow-y: auto; /* Enable vertical scrolling */
+  
+  /* Positioning adjustments */
+  position: absolute;
+  top: 45%; /* Lower the container by increasing this value */
+  left: 50%; /* Center horizontally */
+  transform: translate(-50%, -60%); /* Adjust centering */
+  margin-top: 100px;
+}
+
+
+/* Title styling */
+.validated-container h2 {
+  text-align: center;
+  color: #381167; /* Purple for consistency */
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* Buttons container for consistency */
+.buttons-container {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Diploma list styling */
+.validated-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.validated-item {
+  background-color: #f8f9fa; /* Subtle gray background for items */
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); /* Slight shadow for depth */
+}
+
+.validated-item:hover {
+  background-color: #ececec; /* Light hover effect */
+}
+
+.validated-info {
+  color: #381167; /* Purple for text consistency */
+  font-size: 14px; /* Slightly smaller font size for neatness */
+}

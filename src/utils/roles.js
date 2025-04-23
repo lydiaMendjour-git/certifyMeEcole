@@ -1,0 +1,8 @@
+const ROLES = {
+  UNIVERSITY: "UNIVERSITY",
+  STUDENT: "STUDENT",
+  ECOLE: "ECOLE",
+  MINISTERE :"MINISTERE",
+};
+
+export default ROLES;

@@ -1,0 +1,143 @@
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validation des champs
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Email et mot de passe sont requis" 
+      });
+    }
+
+    // Recherche du compte avec les relations possibles
+    const account = await prisma.account.findUnique({
+      where: { email },
+      include: { 
+        university: true,
+        ecole: true,
+        etudiant: true
+      }
+    });
+
+    if (!account) {
+      return res.status(401).json({ 
+        success: false,
+        error: "Identifiants incorrects" // Message générique pour la sécurité
+      });
+    }
+
+    // Vérification de l'email
+    if (!account.isVerified) {
+      return res.status(403).json({ 
+        success: false,
+        error: "Email non vérifié. Veuillez vérifier votre boîte mail.",
+        //resendLink: `/auth/resend-verification/${account.id}`
+      });
+    }
+
+    // Vérification du mot de passe
+    const isPasswordValid = await bcrypt.compare(password, account.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        success: false,
+        error: "Identifiants incorrects" // Message générique pour la sécurité
+      });
+    }
+
+    // Construction du payload du token
+    
+    const tokenPayload = {
+      accountId: account.id,
+      role: account.role,
+      email: account.email,
+      username: account.username,
+      // Infos spécifiques à l'université
+      ...(account.role === 'UNIVERSITY' && account.university && { 
+        universityId: account.university.idUni,
+        universityName: account.university.nomUni,
+        walletAddress: account.university.walletAddress
+      }),
+      // Infos spécifiques à l'école
+      ...(account.role === 'ECOLE' && account.ecole && { 
+        ecoleId: account.ecole.idEcole,
+        ecoleName: account.ecole.nomEcole
+      }),
+      // Infos spécifiques à l'étudiant
+      ...(account.role === 'STUDENT' && account.etudiant && { 
+        studentId: account.etudiant.idEtudiant,
+        matricule: account.etudiant.matricule
+      })
+    };
+
+    // Génération du token JWT
+    const token = jwt.sign(
+      tokenPayload,
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" } // Expire dans 24 heures
+    );
+
+    // Construction de la réponse
+    const responseData = {
+      success: true,
+      token,
+      message: "Connexion réussie",
+      account: {
+        id: account.id,
+        email: account.email,
+        username: account.username,
+        role: account.role,
+        isVerified: account.isVerified,
+        // Inclure les infos spécifiques au rôle
+        ...(account.role === 'UNIVERSITY' && account.university && {
+          university: {
+            id: account.university.idUni,
+            name: account.university.nomUni,
+            walletAddress: account.university.walletAddress
+          }
+        }),
+        ...(account.role === 'ECOLE' && account.ecole && {
+          ecole: {
+            id: account.ecole.idEcole,
+            name: account.ecole.nomEcole
+          }
+        }),
+        ...(account.role === 'STUDENT' && account.etudiant && {
+          student: {
+            id: account.etudiant.idEtudiant,
+            matricule: account.etudiant.matricule
+          }
+        })
+      }
+    };
+
+    // Définir le cookie HTTP Only si nécessaire
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000, // 1 jour
+      sameSite: 'strict'
+    });
+
+    // Envoyer la réponse
+    res.status(200).json(responseData);
+    
+  } catch (error) {
+    console.error("Erreur lors de la connexion:", error);
+    
+    // Gestion des erreurs spécifiques
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return res.status(500).json({ 
+        success: false,
+        error: "Erreur de base de données",
+        code: error.code
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      error: "Erreur serveur lors de la connexion",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

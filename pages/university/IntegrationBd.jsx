@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import  Header  from '../../components/Header';
+import  Header  from './Header.jsx';
 import { useRouter } from 'next/router';
 
 // URL de base de l'API
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "http://localhost:5000";
 
 const IntegrationBd = () => {
   const [universities, setUniversities] = useState([]);
@@ -30,23 +30,36 @@ const IntegrationBd = () => {
    
     loadUniversities();
   }, []);
-
-  // Chargement des facultés basées sur l'université sélectionnée
-  const handleUniversityChange = async (e) => {
-    const uniId = e.target.value;
-    setSelectedUniversity(uniId);
-    if (uniId) {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/faculties`, {
-          params: { universityId: uniId },
-        });
-        setFaculties(response.data);
-      } catch (error) {
-        console.error(error);
+   
+  useEffect(() => {
+    const fetchFaculties = async () => {
+      const universityId = localStorage.getItem('university_id');
+      if (!universityId) {
+        console.warn("ID université non trouvé !");
+        return;
       }
-    }
-  };
+  
+      try {
+        const response = await axios.get(`${API_BASE_URL}/faculties/${universityId}`, {
+          headers: {
+          Authorization: `Bearer ${localStorage.getItem('uni_token')}`,
+            },
+        });
+  
+        if (response.data.success) {
+          setFaculties(response.data.data);
+        } else {
+          console.warn("Pas de facultés trouvées pour cette université");
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des facultés:", error);
+      }
+    };
+  
+    fetchFaculties();
+  }, []);
 
+  
   // Téléchargement des facultés
   const handleFacultiesSubmit = async (e) => {
     e.preventDefault();
@@ -59,18 +72,23 @@ const IntegrationBd = () => {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('universityId', selectedUniversity);
-    setUploadingFaculties(true);
+    const universityId = localStorage.getItem('university_id');
+    console.log("universityId récupéré :", universityId);
+     formData.append('universityId', universityId);
+     setUploadingFaculties(true);
 
     try {
       const response = await axios.post(`${API_BASE_URL}/faculties/upload`, formData);
       setResultFaculties(response.data);
 
       // Optionnel: Recharger les facultés de cette université
-      const facultiesResponse = await axios.get(`${API_BASE_URL}/faculties-by-university`, {
-        params: { universityId: selectedUniversity },
-      });
-      setFaculties(facultiesResponse.data);
+      const facultiesResponse  = await axios.get(`${API_BASE_URL}/faculties/${universityId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('uni_token')}`,
+        }
+    });
+    setFaculties(facultiesResponse.data.data); // ✅
+
     } catch (error) {
       console.error('Erreur lors de l\'upload :', error.response ? error.response.data : error.message);
     } finally {
@@ -107,9 +125,19 @@ const IntegrationBd = () => {
     }
   };
 
-  const handleGoBack = () => {
-    router.push('/university/universityPage'); // Redirige vers la page universityPage
-  };
+   const handleGoBack = () => {
+      const token = localStorage.getItem('uni_token');
+      if (token) {
+        const safeToken = encodeURIComponent(token);
+        router.push(`/university/${safeToken}`);
+      }  };
+
+      const handleGoGestion = () => {
+        const token = localStorage.getItem('uni_token');
+        if (token) {
+          const safeToken = encodeURIComponent(token);
+          router.push(`/university/GestionFacuDept?token=${safeToken}`);
+  }  };
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
@@ -117,16 +145,7 @@ const IntegrationBd = () => {
       <div className="container" style={{ width: '80%', margin: '0 auto',marginTop: '100px', padding: '60px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }}>
         <h1 style={{ color: '#3498db', textAlign: 'center' }}>Gestion des Facultés et Départements</h1>
 
-        {/* Étape 1 : Choisir une université */}
-        <div className="form-group" style={{ marginBottom: '20px' }}>
-          <label htmlFor="university" style={{ fontWeight: 'bold' }}>Sélectionnez une université :</label>
-          <select id="university" required onChange={handleUniversityChange} style={{ width: '100%', padding: '10px', marginTop: '10px', borderRadius: '4px', border: '1px solid #ddd' }}>
-            <option value="">--Choisir une université--</option>
-            {universities.map((uni) => (
-              <option key={uni.idUni} value={uni.idUni}>{uni.nomUni}</option>
-            ))}
-          </select>
-        </div>
+      
 
         {/* Étape 2 : Intégrer les facultés */}
         <form id="uploadFaculties" encType="multipart/form-data" onSubmit={handleFacultiesSubmit}>
@@ -178,6 +197,12 @@ const IntegrationBd = () => {
           style={{ backgroundColor: '#e74c3c', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '20px' }}
         >
           Retour
+        </button>
+        <button
+          onClick={handleGoGestion}
+          style={{ backgroundColor: '#e74c3c', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '20px' }}
+        >
+          Gestion
         </button>
 
       </div>
