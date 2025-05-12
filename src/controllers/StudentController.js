@@ -5,7 +5,6 @@ import csv from 'fast-csv';
 import { fileURLToPath } from 'url';
 import { prisma } from '../prismaClient.js';
 
-// Nécessaire pour __dirname en ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,14 +16,13 @@ const StudentController = {
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
-  }, 
+  },
 
   async uploadStudents(req, res) {
     try {
       const { facultyId, departmentId, anneeId } = req.body;
       const etudiants = [];
 
-      // Validation des IDs
       const faculty = facultyId ? await prisma.faculty.findUnique({ where: { idFaculty: parseInt(facultyId) } }) : null;
       const department = departmentId ? await prisma.department.findUnique({ where: { idDepart: parseInt(departmentId) } }) : null;
       const annee = await prisma.anneeUniversitaire.findUnique({ where: { idAnnee: parseInt(anneeId) } });
@@ -33,8 +31,8 @@ const StudentController = {
         return res.status(400).json({ message: "Certains ID sont invalides ou manquants." });
       }
 
-        const filePath = path.join(__dirname, '../routes/uploads/', req.file.filename);
-       
+      const filePath = path.join(__dirname, '../routes/uploads/', req.file.filename);
+     
       fs.createReadStream(filePath)
         .pipe(csv.parse({ headers: true }))
         .on('error', error => {
@@ -64,7 +62,6 @@ const StudentController = {
         })
         .on('end', async () => {
           try {
-            // Traitement transactionnel pour éviter les insertions multiples
             await prisma.$transaction(async (prisma) => {
               for (const etudiant of etudiants) {
                 await prisma.etudiant.upsert({
@@ -83,13 +80,8 @@ const StudentController = {
               }
             });
 
-            // Suppression du fichier après traitement
             fs.unlink(filePath, (err) => {
-              if (err) {
-                console.error("Erreur lors de la suppression du fichier:", err);
-              } else {
-                console.log("Fichier supprimé avec succès:", req.file.filename);
-              }
+              if (err) console.error("Erreur suppression fichier:", err);
             });
 
             res.json({
@@ -113,15 +105,14 @@ const StudentController = {
       });
     }
   },
+
   async getStudentsByAnnee(req, res) {
     try {
-      // Extraction CORRECTE du paramètre de route
-      const { idAnnee } = req.params; // ← Utilisez req.params (pas req.query)
+      const { idAnnee } = req.params;
       
       if (!idAnnee || isNaN(idAnnee)) {
         return res.status(400).json({ 
-          error: "Paramètre manquant ou invalide",
-          details: "L'ID d'année (anneeId) est requis et doit être un nombre"
+          error: "Paramètre manquant ou invalide"
         });
       }
   
@@ -129,14 +120,14 @@ const StudentController = {
       res.json(students);
       
     } catch (error) {
-      console.error("Erreur complète:", error); // Log complet pour débogage
+      console.error("Erreur:", error);
       res.status(500).json({
-        error: "Erreur lors de la récupération des étudiants",
-        details: process.env.NODE_ENV === 'development' ? error.message : "Détails cachés en production"
+        error: "Erreur lors de la récupération"
       });
     }
   }
-};// 👈 Et celle-ci pour fermer le `FacultyController`
-  
-  export default StudentController;
 
+  
+};
+
+export default StudentController;

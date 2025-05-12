@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { motion } from 'framer-motion';
-import { FaArrowLeft, FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaArrowLeft, FaSpinner, FaEnvelope, FaLock , FaUserCircle, FaSignInAlt, FaUserPlus, FaShieldAlt} from 'react-icons/fa';
 import { useRouter } from 'next/router';
 
 const Login = () => {
@@ -44,7 +44,7 @@ switch(response.data.account.role) {
   }
   case 'MINISTERE': {
     const safeToken = encodeURIComponent(response.data.token);
-    localStorage.setItem('ministere_token', response.data.token); // si tu veux le garder aussi
+    localStorage.setItem('ministere_token', response.data.token); 
     router.push(`/ministry/${safeToken}`);
     break;
   }
@@ -52,7 +52,10 @@ switch(response.data.account.role) {
     router.push('/ecole');
     break;
   case 'STUDENT':
-    router.push('/student');
+    const safeToken = encodeURIComponent(response.data.token);
+    localStorage.setItem('student_token', response.data.token); 
+    router.push(`/student/${safeToken}`);
+  
     break;
   default:
     router.push('/');
@@ -66,34 +69,35 @@ switch(response.data.account.role) {
   };
 
   const colors = {
-    primary: '#2F855A',       // Vert validation – sérieux, rassurant
-    secondary: '#2D3748',     // Gris charbon – autorité, modernité
-    accent: '#38A169',        // Vert accent – pour boutons/CTA
-    lightBg: '#F7FAFC',       // Fond clair neutre – pro et clean
-    darkBg: '#1A202C',        // Fond sombre – header/footer élégant
-    textDark: '#1C1C1C',      // Texte principal – bonne lisibilité
-    textLight: '#718096',     // Texte secondaire – descriptions, placeholders
-    border: '#CBD5E0',        // Bordures subtiles – pour structurer sans surcharger
-    success: '#2F855A',       // Succès – même que primary pour cohérence
-    error: '#C53030',         // Erreur – rouge sérieux
-    warning: '#D69E2E'        // Avertissement – or doux, pas criard
+    primary: '#2F855A',       // Vert validation
+    secondary: '#2D3748',     // Gris charbon
+    accent: '#38A169',        // Vert accent
+    lightBg: '#F7FAFC',       // Fond clair
+    darkBg: '#1A202C',        // Fond sombre
+    textDark: '#1C1C1C',      // Texte principal
+    textLight: '#718096',     // Texte secondaire
+    border: '#CBD5E0',        // Bordures
+    success: '#2F855A',       // Succès
+    error: '#C53030',         // Erreur
+    warning: '#D69E2E',       // Avertissement
+    blockchain: '#4C6B8A',    // Couleur blockchain
   };
   
-
   return (
     <div style={{
-      backgroundColor: colors.lightBg,
-      minHeight: '50vh',
-      padding: '1rem',
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      display: 'flex',
+      backgroundColor: "#f0f9f1",
+      minHeight: '100vh',
+      padding: '0rem',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       position: 'relative',
       overflow: 'hidden'
     }}>
-      {/* Background elements */}
-      <div style={{
+
+       {/* Background elements */}
+       <div style={{
         position: 'absolute',
         top: '-50%',
         left: '-50%',
@@ -157,6 +161,55 @@ switch(response.data.account.role) {
         <FaLock size={150} color={colors.accent} />
       </motion.div>
 
+      
+      {/* Blockchain background pattern */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundImage: `
+          linear-gradient(to right, ${colors.blockchain}10 1px, transparent 1px),
+          linear-gradient(to bottom, ${colors.blockchain}10 1px, transparent 1px)
+        `,
+        backgroundSize: '40px 40px',
+        opacity: 0.3,
+        zIndex: 0
+      }} />
+      
+      {/* Blockchain nodes animation */}
+      <div style={{
+        position: 'absolute',
+        top: '20%',
+        left: '15%',
+        width: '10px',
+        height: '10px',
+        borderRadius: '50%',
+        backgroundColor: colors.primary,
+        boxShadow: `0 0 20px ${colors.primary}`,
+        zIndex: 0,
+        animation: 'pulse 3s infinite'
+      }} />
+   
+
+      
+
+      
+      {/* Blockchain connection lines */}
+      <svg width="100%" height="100%" style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        zIndex: 0,
+        opacity: 0.1
+      }}>
+        <line x1="15%" y1="20%" x2="30%" y2="40%" stroke={colors.darkBg} strokeWidth="2" strokeDasharray="5,5" />
+        <line x1="30%" y1="40%" x2="70%" y2="35%" stroke={colors.darkBg} strokeWidth="2" strokeDasharray="5,5" />
+        <line x1="70%" y1="35%" x2="80%" y2="25%" stroke={colors.darkBg} strokeWidth="2" strokeDasharray="5,5" />
+      </svg>
+  
+      {/* Main card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -165,75 +218,71 @@ switch(response.data.account.role) {
           position: "relative",
           backgroundColor: "white",
           borderRadius: "20px",
-          boxShadow: "0 15px 40px rgba(0,0,0,0.1)",
+          boxShadow: "0 25px 50px rgba(0,0,0,0.1)",
           overflow: "hidden",
           width: "100%",
-          maxWidth: "450px",
+          maxWidth: "500px",
           zIndex: 1,
-          border: `1px solid ${colors.primary}20`
+          border: `1px solid ${colors.border}`
         }}
       >
-        {/* Header with subtle pattern */}
-        <div style={{
+         <div style={{
           background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
-          padding: "1rem 1rem 0.2rem",
+          padding: "1rem 1rem 0.5rem",
           position: "relative",
           textAlign: "center",
           overflow: 'hidden'
         }}>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                zIndex: 999,
-                position: "absolute",
-                top: "1rem",
-                left: "1rem",
-                background: "rgba(255,255,255,0.2)",
-                padding: "0.5rem",
-                borderRadius: "8px",
-                cursor: "pointer"
-              }}
-              onClick={() => router.push('/')}
-            >
-              <FaArrowLeft color="white" />
-            </motion.div>
-
+          
+  
+          
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              position: "absolute",
+              top: "1.5rem",
+              left: "1.5rem",
+              background: "rgba(255,255,255,0.2)",
+              padding: "0.5rem",
+              borderRadius: "8px",
+      
+            }}
+            onClick={() => router.push('/')}
+          >
+            <FaArrowLeft color="white" />
+          </motion.div>
+  
+          {/* University + Blockchain logo */}
+          
+  
           <h2 style={{
             color: "white",
-            fontSize: "1.4rem",
-            fontWeight: "700",
-            margin: "0.3rem 0 0 0",
+            fontSize: "1.8rem",
+            fontWeight: "500",
+            margin: "0.5rem 0 0 0",
             position: 'relative',
             zIndex: 1
           }}>
-            Connexion
+            Connexion 
           </h2>
           <p style={{
             color: "rgba(255,255,255,0.85)",
-            fontSize: "0.85rem",
+            fontSize: "0.9rem",
             marginTop: "0.5rem",
             position: 'relative',
             zIndex: 1
           }}>
-            Accédez à votre espace sécurisé
+           Accédez à votre espace sécurisé
           </p>
         </div>
         
-        {/* Form with subtle background */}
+        {/* Form section */}
         <div style={{
           position: 'relative',
-          padding: '1rem'
+          padding: '2rem'
         }}>
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: 'linear-gradient(to bottom, transparent 95%, rgba(76, 201, 240, 0.05) 100%)',
-            zIndex: 0
-          }} />
+         
           
           <form onSubmit={handleSubmit} style={{ position: 'relative', zIndex: 1 }}>
             {error && (
@@ -241,20 +290,25 @@ switch(response.data.account.role) {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 style={{ 
-                  color: '#e53e3e', 
+                  color: colors.error, 
                   backgroundColor: '#fff5f5',
-                  padding: "0.75rem",
-                  borderRadius: "8px",
+                  padding: "1rem",
+                  borderRadius: "10px",
                   marginBottom: "1.5rem",
                   textAlign: "center",
-                  border: '1px solid #fed7d7',
-                  fontSize: '0.85rem'
+                  border: `1px solid ${colors.error}20`,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
                 }}
               >
+                <FaExclamationTriangle />
                 {error}
               </motion.div>
             )}
-
+  
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -262,32 +316,38 @@ switch(response.data.account.role) {
               style={{ marginBottom: "1.5rem" }}
             >
               <label style={{
-                display: "block",
+                display: "flex",
+                alignItems: 'center',
                 color: colors.textDark,
                 fontSize: "0.9rem",
-                fontWeight: "600",
-                marginBottom: "0.6rem"
+                fontWeight: "500",
+                marginBottom: "0.6rem",
+                gap: '0.5rem'
               }}>
-                Email
+                <FaUserCircle color={colors.primary} />
+                Identifiant
               </label>
               <div style={{ 
                 position: 'relative',
-                boxShadow: `0 2px 8px ${colors.primary}10`
+                boxShadow: `0 4px 12px ${colors.primary}10`,
+                borderRadius: '10px',
+                overflow: 'hidden'
               }}>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="votre@email.com"
+                  placeholder="votre@gmail.com"
                   style={{
                     width: "85%",
-                    padding: "0.9rem 1rem 0.9rem 3rem",
+                    padding: "1rem 1rem 1rem 3rem",
                     borderRadius: "10px",
-                    border: `1px solid ${colors.primary}30`,
-                    fontSize: "0.9rem",
+                    border: `1px solid ${colors.border}`,
+                    fontSize: "0.95rem",
                     color: colors.textDark,
-                    transition: "all 0.3s ease"
+                    transition: "all 0.3s ease",
+                    backgroundColor: 'white'
                   }}
                   required
                 />
@@ -296,30 +356,50 @@ switch(response.data.account.role) {
                   left: "1rem", 
                   top: "50%", 
                   transform: "translateY(-50%)", 
-                  color: colors.primary,
-                  fontSize: "0.9rem"
+                  color: colors.textLight,
+                  fontSize: "1rem"
                 }} />
               </div>
             </motion.div>
-
+  
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              style={{ marginBottom: "1.8rem" }}
+              style={{ marginBottom: "2rem" }}
             >
-              <label style={{
-                display: "block",
-                color: colors.textDark,
-                fontSize: "0.9rem",
-                fontWeight: "600",
-                marginBottom: "0.6rem"
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '0.6rem'
               }}>
-                Mot de passe
-              </label>
+                <label style={{
+                  display: "flex",
+                  alignItems: 'center',
+                  color: colors.textDark,
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  gap: '0.5rem'
+                }}>
+                  <FaLock color={colors.primary} />
+                  Mot de passe
+                </label>
+                <a href="#" style={{
+                  color: colors.textLight,
+                  fontSize: '0.8rem',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease'
+                }}>
+                  Mot de passe oublié ?
+                </a>
+              </div>
+              
               <div style={{ 
                 position: 'relative',
-                boxShadow: `0 2px 8px ${colors.primary}10`
+                boxShadow: `0 4px 12px ${colors.primary}10`,
+                borderRadius: '10px',
+                overflow: 'hidden'
               }}>
                 <input
                   type="password"
@@ -329,12 +409,13 @@ switch(response.data.account.role) {
                   placeholder="••••••••"
                   style={{
                     width: "85%",
-                    padding: "0.9rem 1rem 0.9rem 3rem",
+                    padding: "1rem 1rem 1rem 3rem",
                     borderRadius: "10px",
-                    border: `1px solid ${colors.primary}30`,
-                    fontSize: "0.9rem",
+                    border: `1px solid ${colors.border}`,
+                    fontSize: "0.95rem",
                     color: colors.textDark,
-                    transition: "all 0.3s ease"
+                    transition: "all 0.3s ease",
+                    backgroundColor: 'white'
                   }}
                   required
                 />
@@ -343,39 +424,55 @@ switch(response.data.account.role) {
                   left: "1rem", 
                   top: "50%", 
                   transform: "translateY(-50%)", 
-                  color: colors.primary,
-                  fontSize: "0.9rem"
+                  color: colors.textLight,
+                  fontSize: "1rem"
                 }} />
               </div>
             </motion.div>
-
+  
             <motion.button
               whileHover={{ 
                 scale: 1.02,
-                boxShadow: `0 5px 15px ${colors.primary}40`
+                boxShadow: `0 8px 20px ${colors.primary}40`
               }}
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading}
+              
               style={{
                 width: "100%",
-                background: loading ? colors.textLight : `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
+                background: loading ? colors.textLight : `linear-gradient(135deg, ${colors.accent}, ${colors.secondary})`,
                 color: "white",
                 border: "none",
                 borderRadius: "10px",
                 padding: "1rem",
-                fontSize: "0.95rem",
-                fontWeight: "600",
+                fontSize: "1rem",
+                fontWeight: "500",
                 cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: `0 4px 12px ${colors.primary}30`,
-                transition: "all 0.3s ease"
+                boxShadow: `0 6px 16px ${colors.primary}30`,
+                transition: "all 0.3s ease",
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
               }}
             >
-              {loading ? "Connexion en cours..." : "Se connecter"}
+              {loading ? (
+                <>
+                  <FaSpinner className="spin" />
+                  <span>Vérification en cours...</span>
+                </>
+              ) : (
+                <>
+                  <FaSignInAlt />
+                  <span>Se connecter</span>
+                </>
+              )}
             </motion.button>
           </form>
         </div>
-
+  
+        {/* Footer */}
         <div style={{
           padding: '1rem 2rem',
           textAlign: 'center',
@@ -421,6 +518,24 @@ switch(response.data.account.role) {
           </a>
         </div>
       </motion.div>
+  
+      {/* Global styles */}
+      <style jsx global>{`
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(1); opacity: 0.8; }
+        }
+        
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

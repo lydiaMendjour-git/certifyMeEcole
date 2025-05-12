@@ -181,7 +181,7 @@ model Ministere {
 
 model Diplome {
   id             Int       @id @default(autoincrement())
-  diplomaHash   String
+  diplomaHash    String    @unique
   etablissement String
   studentName   String
   birthDate     DateTime
@@ -230,4 +230,17 @@ model AnneeUniversitaire {
     anneediplome        Int
     isCurrent           Boolean
     cursusUniversitaire CursusUniversitaire[]
+}
+
+model HistoriqueVerification {
+  id               Int      @id @default(autoincrement())
+  idEtudiant       Int
+  nomEtudiant      String
+  lienVerification String
+  titreDiplome     String
+  etablissement    String
+  dateDemande      DateTime @default(now())
+  dateDernierAcces DateTime @default(now())
+  
+  @@index([idEtudiant])
 }

@@ -14,6 +14,7 @@ import path from 'path';
 import fs from 'fs';
 
 
+
 const router = express.Router();
 
 // Get absolute directory path
@@ -36,6 +37,8 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+
 
 // 1. University routes
 //recupere toutes les universites possible
@@ -98,6 +101,7 @@ router.get('/annee-uniID/:idUni', AnneeController.getAnneesByUniversity);
 //7. Etudiants ministere
 router.post('/verifier-etudiants', StudentMinistryController.verifierEtudiants);
 //8.creation de diplome
+router.get('/historique', authenticateToken, DiplomasController.getHistorique);
 router.post('/creer-diplomes', DiplomasController.creerDiplomes);
 router.get('/students-by-annee/:idAnnee', StudentController.getStudentsByAnnee);
 
@@ -112,6 +116,11 @@ router.post('/:diplomaId/valider', DiplomasController.validateDiploma);
 router.get('/:universityId/diplomes-valides', DiplomasController.getValidatedDiplomas);
 router.post('/:diplomaId/rejeter', DiplomasController.rejectDiploma);
 
+//route pour demander un diplôme par un étudiant
+router.post('/demande-diplome', DiplomasController.demanderDiplome);
+//route pour verifier un diplôme par url
+router.get('/verifier-diplome/:hash', DiplomasController.verifierDiplome);
+
 
 // Auth routes
 router.post('/register', authController.register);
@@ -119,7 +128,6 @@ router.get('/universities-auth', authController.getUniversitiesAUTH);
 router.get('/verify-email/:token', authController.verifyEmail);
 router.post('/login', authController.login);
 
-// Récupère les infos de l'université connectée via le token
 
 
 export default router;

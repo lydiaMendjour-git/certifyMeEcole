@@ -342,7 +342,10 @@ const login = async (req, res) => {
       // Infos spécifiques à l'étudiant
       ...(account.role === 'STUDENT' && account.etudiant && { 
         studentId: account.etudiant.idEtudiant,
-        matricule: account.etudiant.matricule
+        studentEmail : account.etudiant.email,
+        studentName : account.etudiant.nom,
+        studentPrenom : account.etudiant.prenom
+
       }),
       // Infos spécifiques à l'étudiant
       ...(account.role === 'MINISTERE' && account.ministere && { 
@@ -386,7 +389,9 @@ const login = async (req, res) => {
         ...(account.role === 'STUDENT' && account.etudiant && {
           student: {
             id: account.etudiant.idEtudiant,
-            matricule: account.etudiant.matricule
+            email : account.etudiant.email,
+           name : account.etudiant.nom,
+          prenom : account.etudiant.prenom
           }
         }),
         ...(account.role === 'MINISTERE' && account.ministere && {
