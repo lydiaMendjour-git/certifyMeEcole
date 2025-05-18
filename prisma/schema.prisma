@@ -7,229 +7,188 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
- enum Role {
-  UNIVERSITY
-  STUDENT
-  ECOLE
-  MINISTERE
-}
- enum RoleEcole {
-  PRIVEE
-  PROFESSIONNEL
-  FORMATION
-}
-
-enum NotificationType {
-  DIPLOME_VALIDE
-  DIPLOME_REJETE
-  NOUVELLE_DEMANDE
-  COMPTE_VERIFIE
-  ALERT_GENERAL
-}
-
-
 model Notification {
-  id           Int       @id @default(autoincrement())
-  title        String
-  message      String
-  isRead       Boolean   @default(false)
-  type         NotificationType
-  createdAt    DateTime  @default(now())
-
-  // À qui est destinée la notification
-  receiver     Account   @relation("Notification_receiver", fields: [receiverId], references: [id])
-  receiverId   Int
-
-  // Facultatif : qui a envoyé la notif
-  sender       Account?  @relation("NotificationSender", fields: [senderId], references: [id])
-  senderId     Int?
+  id         Int              @id @default(autoincrement())
+  title      String
+  message    String
+  isRead     Boolean          @default(false)
+  type       NotificationType
+  createdAt  DateTime         @default(now())
+  receiverId Int
+  senderId   Int?
+  receiver   Account          @relation("Notification_receiver", fields: [receiverId], references: [id])
+  sender     Account?         @relation("NotificationSender", fields: [senderId], references: [id])
 }
 
 model Account {
-  id           Int       @id @default(autoincrement())
-  username     String
-  email        String    @unique
-  password     String
-  role         Role
-  isVerified   Boolean   @default(false)
-   verificationToken String?   @unique
-  createdAt    DateTime  @default(now())
-  university   University?           @relation("UniversityToAccount")
-  ecole      Ecole?  @relation("EcoleToAccount")
-  etudiant Etudiant_account? @relation("Etudiant_accountToAccount")
-  ministere       Ministere?          @relation("MinistereToAccount") 
-
-  notificationsReceived Notification[] @relation("Notification_receiver")
-  notificationsSent     Notification[] @relation("NotificationSender")
+  id                    Int               @id @default(autoincrement())
+  username              String
+  email                 String            @unique
+  password              String
+  role                  Role
+  isVerified            Boolean           @default(false)
+  verificationToken     String?           @unique
+  createdAt             DateTime          @default(now())
+  ecole                 Ecole?            @relation("EcoleToAccount")
+  etudiant              Etudiant_account? @relation("Etudiant_accountToAccount")
+  ministere             Ministere?        @relation("MinistereToAccount")
+  notificationsReceived Notification[]    @relation("Notification_receiver")
+  notificationsSent     Notification[]    @relation("NotificationSender")
+  university            University?       @relation("UniversityToAccount")
 }
 
 model University {
-  idUni           Int          @id @default(autoincrement())
-  nomUni          String
-  adresseUni      String
-  telephoneUni    String
-  emailUni        String       @unique
- walletAddress     String?   @unique
-walletPrivateKey  String?
-walletIV String @default("initial_iv_value")  // Remplacez par une valeur appropriée
- account         Account      @relation("UniversityToAccount", fields: [accountId], references: [id])
-  accountId       Int          @unique
-  faculties       Faculty[]
-  departments     Department[]
+  idUni            Int          @id @default(autoincrement())
+  nomUni           String
+  adresseUni       String
+  telephoneUni     String
+  emailUni         String       @unique
+  accountId        Int          @unique
+  walletAddress    String?      @unique
+  walletIV         String       @default("initial_iv_value")
+  walletPrivateKey String?
+  departments      Department[]
+  faculties        Faculty[]
+  account          Account      @relation("UniversityToAccount", fields: [accountId], references: [id])
 }
 
-
 model University_OFFICIAL {
-  idUni        Int       @id @default(autoincrement())
+  idUni        Int    @id @default(autoincrement())
   nomUni       String
   adresseUni   String
   telephoneUni String
-  emailUni     String    @unique
-
+  emailUni     String @unique
 }
 
 model Ecole {
-  idEcole        Int       @id @default(autoincrement())
-  nomEcole      String
+  idEcole        Int          @id @default(autoincrement())
+  nomEcole       String
   telephoneEcole String
-  emailEcole     String    @unique
-  account      Account   @relation("EcoleToAccount", fields: [accountId], references: [id])
-  accountId    Int       @unique
-  role          RoleEcole
+  emailEcole     String       @unique
+  accountId      Int          @unique
+  role           RoleEcole
+  account        Account      @relation("EcoleToAccount", fields: [accountId], references: [id])
+  annees         EcoleAnnee[]
+  formations     Formation[]
 }
-
 
 model Ecole_OFFICIAL {
   idEcole        Int       @id @default(autoincrement())
-  nomEcole      String
+  nomEcole       String
   telephoneEcole String
   emailEcole     String    @unique
-  role          RoleEcole
+  role           RoleEcole
 }
 
 model Etudiant_account {
-    idEtudiant                  Int                   @id @default(autoincrement())
-    nom                 String
-    prenom              String
-    email               String                @unique
-    telephone           String                @unique
-    account      Account   @relation("Etudiant_accountToAccount", fields: [accountId], references: [id])
-  accountId    Int       @unique
+  idEtudiant Int     @id @default(autoincrement())
+  nom        String
+  prenom     String
+  email      String  @unique
+  telephone  String  @unique
+  accountId  Int     @unique
+  account    Account @relation("Etudiant_accountToAccount", fields: [accountId], references: [id])
 }
 
 model Faculty {
-    idFaculty                  Int                   @id @default(autoincrement())
-    nomFaculty                 String
-    idUni    Int
-    university       University         @relation(fields: [idUni], references: [idUni], onDelete: Cascade)
-    cursusUniversitaire CursusUniversitaire[]
-    departments         Department[]
+  idFaculty           Int                   @id @default(autoincrement())
+  nomFaculty          String
+  idUni               Int
+  cursusUniversitaire CursusUniversitaire[]
+  departments         Department[]
+  university          University            @relation(fields: [idUni], references: [idUni], onDelete: Cascade)
 }
 
 model Department {
-    idDepart                 Int                   @id @default(autoincrement())
-    nomDepart                 String
-    idFaculty          Int
-    faculty             Faculty               @relation(fields: [idFaculty], references: [idFaculty], onDelete: Cascade)
-    university  University @relation(fields: [idUni], references: [idUni], onDelete: Cascade) // Relation inverse ajoutée
-    idUni      Int
-    cursusUniversitaire CursusUniversitaire[]
+  idDepart            Int                   @id @default(autoincrement())
+  nomDepart           String
+  idFaculty           Int
+  idUni               Int
+  cursusUniversitaire CursusUniversitaire[]
+  faculty             Faculty               @relation(fields: [idFaculty], references: [idFaculty], onDelete: Cascade)
+  university          University            @relation(fields: [idUni], references: [idUni], onDelete: Cascade)
 }
 
 model Etudiant {
-    idEtudiant                  Int                   @id @default(autoincrement())
-    nom                 String
-    prenom              String
-    email               String                @unique
-    matricule           String                @unique
-    telephone           String                @unique
-    dateNaissance      DateTime
-    lieuNaissance      String
-    CursusUniversitaire CursusUniversitaire[] 
-    diplomes            Diplome[] 
+  idEtudiant          Int                   @id @default(autoincrement())
+  nom                 String
+  prenom              String
+  email               String                @unique
+  matricule           String                @unique
+  telephone           String                @unique
+  dateNaissance       DateTime
+  lieuNaissance       String
+  CursusUniversitaire CursusUniversitaire[]
+  diplomes            Diplome[]
 }
 
 model EtudiantMinistere {
-  idEtudiantMinistere Int      @id @default(autoincrement())
+  idEtudiantMinistere Int        @id @default(autoincrement())
   nom                 String
   prenom              String
-  email               String   @unique
-  matricule           String   @unique
+  email               String     @unique
+  matricule           String     @unique
   dateNaissance       DateTime
   lieuNaissance       String
-
-  // Lien vers le ministère de référence
-  ministere           Ministere?  @relation(fields: [ministereId], references: [id])  // rendre nullable
   ministereId         Int?
+  ministere           Ministere? @relation(fields: [ministereId], references: [id])
 }
-
-
 
 model Ministere {
-  id             Int        @id @default(autoincrement())
-  nomMinistere   String
-  emailMinistere String     @unique
-  pays           String?
-
-  // Lien vers le compte utilisateur
-  account        Account    @relation("MinistereToAccount", fields: [accountId], references: [id])
-  accountId      Int        @unique
-
-  etudiants      EtudiantMinistere[]
+  id               Int                 @id @default(autoincrement())
+  nomMinistere     String
+  emailMinistere   String              @unique
+  pays             String?
+  accountId        Int                 @unique
+  numeroTelephone  String?             @unique
+  walletAddress    String?             @unique
+  walletIV         String              @default("initial_iv_value")
+  walletPrivateKey String?
+  etudiants        EtudiantMinistere[]
+  account          Account             @relation("MinistereToAccount", fields: [accountId], references: [id])
 }
 
-
 model Diplome {
-  id             Int       @id @default(autoincrement())
-  diplomaHash    String    @unique
+  id            Int         @id @default(autoincrement())
+  diplomaHash   String      @unique
   etablissement String
   studentName   String
   birthDate     DateTime
   diplomaTitle  String
-  diplomaType   DiplomaType 
+  diplomaType   DiplomaType
   dateOfIssue   DateTime
   speciality    String
   complete      Boolean
-
-  // Relation vers l'étudiant
   etudiantId    Int
-  etudiant      Etudiant   @relation(fields: [etudiantId], references: [idEtudiant])
+  etudiant      Etudiant    @relation(fields: [etudiantId], references: [idEtudiant])
 
   @@index([etudiantId])
 }
 
-enum DiplomaType {
-  Universite
-  EcolePrivee
-  EcoleProfessionnelle
-}
-
-
 model CursusUniversitaire {
-    id               Int                @id @default(autoincrement())
-    section          String
-    groupe           String
-    filiere          String
-    idFaculty       Int?
-    faculty          Faculty?           @relation(fields: [idFaculty], references: [idFaculty], onDelete: Cascade)
-    idDepart   Int?
-    department      Department?       @relation(fields: [idDepart], references: [idDepart], onDelete: Cascade)
-    specialite       String?
-    moyenneAnnuelle Float?          
-    idAnnee         Int
-    annee            AnneeUniversitaire @relation(fields: [idAnnee], references: [idAnnee], onDelete: Cascade)
-    niveau           Int
-    etudiant   Etudiant @relation(fields: [idEtudiant], references: [idEtudiant])
-    idEtudiant Int
-
+  id              Int                @id @default(autoincrement())
+  section         String
+  groupe          String
+  filiere         String
+  idFaculty       Int?
+  idDepart        Int?
+  specialite      String?
+  moyenneAnnuelle Float?
+  idAnnee         Int
+  niveau          Int
+  idEtudiant      Int
+  annee           AnneeUniversitaire @relation(fields: [idAnnee], references: [idAnnee], onDelete: Cascade)
+  department      Department?        @relation(fields: [idDepart], references: [idDepart], onDelete: Cascade)
+  etudiant        Etudiant           @relation(fields: [idEtudiant], references: [idEtudiant])
+  faculty         Faculty?           @relation(fields: [idFaculty], references: [idFaculty], onDelete: Cascade)
 }
 
 model AnneeUniversitaire {
-    idAnnee                  Int                   @id @default(autoincrement())
-    annee               String
-    anneediplome        Int
-    isCurrent           Boolean
-    cursusUniversitaire CursusUniversitaire[]
+  idAnnee             Int                   @id @default(autoincrement())
+  annee               String
+  isCurrent           Boolean
+  anneediplome        Int
+  cursusUniversitaire CursusUniversitaire[]
 }
 
 model HistoriqueVerification {
@@ -241,6 +200,109 @@ model HistoriqueVerification {
   etablissement    String
   dateDemande      DateTime @default(now())
   dateDernierAcces DateTime @default(now())
-  
+
   @@index([idEtudiant])
+}
+
+model Formation {
+  idFormation   Int           @id @default(autoincrement())
+  nomFormation  String
+  duree         String?
+  typeFormation String
+  ecoleId       Int
+  cursus        CursusEcole[]  // Relation directe avec CursusEcole
+  ecole         Ecole         @relation(fields: [ecoleId], references: [idEcole])
+}
+
+
+
+model EtudiantEcole {
+  idEtudiantEcole Int            @id @default(autoincrement())
+  nom             String
+  prenom          String
+  email           String         @unique
+  matricule       String
+  moyenne         Float?
+  dateNaissance   DateTime       // Changé en obligatoire
+  lieuNaissance   String?
+  dateInscription DateTime       @default(now())
+  telephone       String?
+  cursus          CursusEcole[]
+  diplomes        DiplomeEcole[] @relation("DiplomesEtudiant")
+}
+
+model EcoleAnnee {
+  id           Int           @id @default(autoincrement())
+  annee        String
+  anneediplome Int
+  isCurrent    Boolean       @default(false)
+  ecoleId      Int
+  cursus       CursusEcole[]
+  ecole        Ecole         @relation(fields: [ecoleId], references: [idEcole])
+
+
+  @@unique([annee, ecoleId])
+}
+
+enum DiplomeEcoleType {
+  PROFESSIONNEL
+  SUPERIEUR
+}
+
+model DiplomeEcole {
+  id             Int             @id @default(autoincrement())
+  diplomaHash    String          @unique
+  etablissement  String
+  studentName    String
+  birthDate      DateTime
+  diplomaTitle   String
+  diplomaType    DiplomeEcoleType
+  dateOfIssue    DateTime        @default(now())
+  specialite     String
+  moyenne        Float?
+  mention        String?
+  etudiantEcole  EtudiantEcole   @relation("DiplomesEtudiant", fields: [etudiantEcoleId], references: [idEtudiantEcole])
+  etudiantEcoleId Int
+
+  @@index([etudiantEcoleId])
+}
+
+model CursusEcole {
+  id          Int           @id @default(autoincrement())
+  moyenne     Float?
+  etudiantId  Int
+  formationId Int
+  anneeId     Int
+  annee       EcoleAnnee    @relation(fields: [anneeId], references: [id])
+  etudiant    EtudiantEcole @relation(fields: [etudiantId], references: [idEtudiantEcole])
+  formation   Formation     @relation(fields: [formationId], references: [idFormation])
+
+  @@unique([etudiantId, anneeId, formationId])
+  @@index([formationId]) // Ajouté
+}
+
+enum Role {
+  UNIVERSITY
+  STUDENT
+  ECOLE
+  MINISTERE
+}
+
+enum RoleEcole {
+  ECOLE_SUPERIEURE
+  ECOLE_FORMATION
+}
+
+enum NotificationType {
+  DIPLOME_VALIDE
+  DIPLOME_REJETE
+  NOUVELLE_DEMANDE
+  COMPTE_VERIFIE
+  ALERT_GENERAL
+}
+
+enum DiplomaType {
+  Universite
+  EcolePrivee
+  EcoleProfessionnelle
 }

@@ -1,0 +1,6 @@
+nom,prenom,email,matricule,telephone,moyenne
+Dupont,Jean,jean.dupont@example.com,EC20230001,+33612345678,14.5
+Martin,Sophie,sophie.martin@example.com,EC20230002,+33623456789,15.2
+Bernard,Pierre,pierre.bernard@example.com,EC20230003,+33634567890,12.8
+Petit,Marie,marie.petit@example.com,EC20230004,+33645678901,16.0
+Durand,Thomas,thomas.durand@example.com,EC20230005,+33656789012,13.7

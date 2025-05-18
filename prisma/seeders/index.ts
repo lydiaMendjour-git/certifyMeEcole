@@ -1,39 +1,44 @@
 import { PrismaClient } from '@prisma/client'
-import universitiesSeeder from './universities.seeder.ts'
-import facultiesSeeder from './faculties.seeder.ts'
-import deparmentsSeeder from './deparments.seeder.ts'
-import anneeSeeder from './annee.seeder.ts'
-import etudiantsSeeder from './etudiants.seeder.ts'
-import cursusSeeder from './cursus.seeder.ts'
-import etudiantsMinistereSeeder from './etudiantsMinistere.seeder.ts'
-import universityOfficialSeeder from './universityOFF.seeder.ts'
-import ecolesSeeder from './ecole.seeder.ts'
-import accountSeeder from './account.seeder.ts'
 
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error']
+})
 
-const main = async () => {
-  const prisma = new PrismaClient({
-    log: ['query', 'info', 'warn', 'error']
-  })
-
+const clearDatabaseTables = async () => {
   try {
-    console.log('🧹 Nettoyage des données existantes...')
-  
-    await prisma.etudiantMinistere.deleteMany()
-  
-     console.log('🌱 Insertion des nouvelles données...')
-    await etudiantsMinistereSeeder(prisma)
-    
-    console.log('✅ Base de données initialisée avec succès!')
+    console.log('🚀 Début du processus de vidage des tables...')
+
+    // Désactiver les contraintes de clé étrangère temporairement
+    await prisma.$executeRaw`SET session_replication_role = 'replica';`
+
+    // Ordre de suppression important à cause des relations
+    const tablesToClear = [
+      'DiplomeEcole',
+      'CursusEcole',
+      'EtudiantEcole',
+      'Formation',
+      'EcoleAnnee'
+    ]
+
+    for (const table of tablesToClear) {
+      console.log(`🧹 Nettoyage de la table ${table}...`)
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE;`)
+      console.log(`✅ Table ${table} vidée avec succès`)
+    }
+
+    // Réactiver les contraintes
+    await prisma.$executeRaw`SET session_replication_role = 'origin';`
+
+    console.log('🎉 Toutes les tables ont été vidées avec succès!')
   } catch (error) {
-    console.error('❌ Erreur lors du seeding:', error)
+    console.error('❌ Erreur lors du vidage des tables:', error)
     if (error instanceof Error) {
       console.error(error.stack)
     }
-  }
-   finally {
+  } finally {
     await prisma.$disconnect()
   }
 }
 
-main()
+// Exécuter le script
+clearDatabaseTables()

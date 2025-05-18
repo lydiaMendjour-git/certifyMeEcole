@@ -1,0 +1,4 @@
+nom,prenom,email,matricule,telephone,dateNaissance,lieuNaissance,section,groupe,filiere,specialite,niveau,moyenneAnnuelle
+Ngono,Paul,paul.ngono@email.com,MAT20230003,699000003,2001-03-30,Garoua,A,1,Physique,Quantique,1,20.0
+Kamga,Alice,alice.kamga@email.com,MAT20230004,699000004,2000-08-17,Bafoussam,B,3,Chimie,Organique,4,20.0
+Mbappe,Kylian,kylian.mbappe@email.com,MAT20230005,699000005,1998-12-20,Paris,A,2,Economie,Macroéconomie,5,20.0

@@ -10,6 +10,11 @@ import authController from '../controllers/authController.js';
 import { authenticateToken } from  '../controllers/authenticateToken.js';
 import StudentMinistryController from '../controllers/StudentMinistryController.js';
 import DiplomasController from '../controllers/DiplomaController.js';
+import EcoleController from '../controllers/EcoleController.js';
+import FormationController from '../controllers/FormationController.js';
+import EtudiantEcoleController from '../controllers/EtudiantEcoleController.js';
+import EcoleAnneeController from '../controllers/EcoleAnneeController.js';
+import CursusEcoleController from '../controllers/CursusEcoleController.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -47,6 +52,13 @@ router.get('/universites-with-account', UniversityController.getAllUniversitiesW
 router.get('/universites/:universityId', UniversityController.getUniversityById);
 
 
+// 10. Ecole routes
+router.get('/ecoles', EcoleController.getEcoles); // Récupérer toutes les écoles
+router.get('/ecoles-with-account', EcoleController.getAllEcolesWithAccount); // Récupérer les écoles avec compte
+router.get('/ecoles/:ecoleId', EcoleController.getEcoleById); // Récupérer une école par ID
+router.get('/ecoles-by-role', EcoleController.getEcolesByRole);
+
+
 // 2. Student routes
 router.get('/students-by-annee/:idAnnee', StudentController.getStudentsByAnnee);
 router.post('/students/upload', upload.single('file'), StudentController.uploadStudents);
@@ -66,6 +78,40 @@ router.post('/faculties/upload', upload.single('file'), FacultyController.upload
 router.post('/facultiescreate', validateFaculty, FacultyController.createFaculty);
 router.put('/facultiesupdate/:id', FacultyController.updateFaculty);
 router.delete('/facultiesdelete/:id', FacultyController.deleteFaculty);
+
+
+
+// Routes pour les formations
+router.post('/formations/create', FormationController.createFormation);
+router.put('/formations/update/:id', FormationController.updateFormation);
+router.delete('/formations/delete/:id', FormationController.deleteFormation);
+router.get('/ecoles/:ecoleId/formations', FormationController.getFormationsByEcole);
+router.post('/formations/upload', upload.single('file'), FormationController.uploadFormations);
+router.get('/students-by-anneeEcole/:idAnnee',EtudiantEcoleController.getStudentsByAnnee);
+
+// Routes pour les étudiants des écoles
+router.get('/formations/:formationId/etudiants', EtudiantEcoleController.getStudentsByFormation);
+router.post('/etudiants-ecole/upload', upload.single('file'), EtudiantEcoleController.uploadStudents);
+router.post('/etudiants-ecole/create', EtudiantEcoleController.createStudent);
+router.put('/etudiants-ecole/update/:id', EtudiantEcoleController.updateStudent);
+router.delete('/etudiants-ecole/delete/:id', EtudiantEcoleController.deleteStudent);
+
+// Routes pour les cursus des écoles
+router.get('/cursus-ecole/etudiant/:matricule', CursusEcoleController.getStudentByMatricule);
+router.get('/cursus-ecole/formation/:formationId/etudiants', CursusEcoleController.getStudentsByFormation);
+router.post('/cursus-ecole', CursusEcoleController.createCursus);
+
+// Créer une année scolaire
+router.post('/', EcoleAnneeController.create);
+
+// Récupérer les années d'une école
+router.get('/ecole/:ecoleId', EcoleAnneeController.getByEcole);
+
+// Définir une année comme courante
+router.put('/:id/set-current', EcoleAnneeController.setCurrent);
+
+// Supprimer une année
+router.delete('/:id', EcoleAnneeController.delete);
 
 
 // Protéger les routes
@@ -103,7 +149,6 @@ router.post('/verifier-etudiants', StudentMinistryController.verifierEtudiants);
 //8.creation de diplome
 router.get('/historique', authenticateToken, DiplomasController.getHistorique);
 router.post('/creer-diplomes', DiplomasController.creerDiplomes);
-router.get('/students-by-annee/:idAnnee', StudentController.getStudentsByAnnee);
 
 //9. validation diplome 
 // Diplômes non validés pour une université
@@ -122,12 +167,18 @@ router.post('/demande-diplome', DiplomasController.demanderDiplome);
 router.get('/verifier-diplome/:hash', DiplomasController.verifierDiplome);
 
 
+// Récupérer les étudiants d'une formation
+router.get('/formations/:formationId/etudiants', FormationController.getStudentsByFormation);
+
+
+// Créer des diplômes pour école
+router.post('/creer-diplomes-ecole', DiplomasController.creerDiplomesEcole);
 // Auth routes
 router.post('/register', authController.register);
 router.get('/universities-auth', authController.getUniversitiesAUTH);
+router.get('/ecoles-auth', authController.getEcolesAUTH);
 router.get('/verify-email/:token', authController.verifyEmail);
 router.post('/login', authController.login);
-
 
 
 export default router;

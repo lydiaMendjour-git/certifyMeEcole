@@ -82,11 +82,13 @@ const DiplomasController = {
     }
   },
 
-  // ❌ Rejeter un diplôme
+
   async rejectDiploma(req, res) {
     const { diplomaId } = req.params;
     try {
-      const diploma = await diplomaModel.deleteDiplomaById(diplomaId);
+      const diploma = await prisma.diplome.delete({
+        where: { id: parseInt(diplomaId) }
+      });
       if (!diploma) {
         return res.status(404).json({ error: 'Diplôme non trouvé' });
       }
@@ -97,7 +99,115 @@ const DiplomasController = {
     }
   },
 
-  // 🆕 Demander un diplôme (par étudiant connecté)
+ // Dans DiplomaController.js
+async creerDiplomesEcole(req, res) {
+  try {
+    console.log("Received request body:", req.body);
+    
+    const { anneeId, titreDiplome, diplomeType, etudiants, etablissement } = req.body;
+
+    // Enhanced validation
+    if (!anneeId || !titreDiplome || !diplomeType || !etablissement) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Missing required fields" 
+      });
+    }
+
+    if (!etudiants || !Array.isArray(etudiants) || etudiants.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Etudiants array is required and must not be empty" 
+      });
+    }
+
+    const result = [];
+    const errors = [];
+
+    // Transaction
+    await prisma.$transaction(async (prisma) => {
+      for (const { idEtudiantEcole } of etudiants) {
+        try {
+          // Verify student exists with all required relations
+          const etudiant = await prisma.etudiantEcole.findUnique({
+            where: { idEtudiantEcole: Number(idEtudiantEcole) },
+            include: { 
+              cursus: {
+                include: {
+                  formation: true,
+                  annee: true
+                }
+              } 
+            }
+          });
+
+          if (!etudiant) {
+            errors.push({ idEtudiantEcole, error: "Étudiant non trouvé" });
+            continue;
+          }
+
+          if (!etudiant.cursus || etudiant.cursus.length === 0) {
+            errors.push({ idEtudiantEcole, error: "L'étudiant n'a pas de cursus" });
+            continue;
+          }
+
+          const currentCursus = etudiant.cursus.find(c => c.annee.id === anneeId);
+          if (!currentCursus) {
+            errors.push({ idEtudiantEcole, error: "L'étudiant n'est pas inscrit dans l'année spécifiée" });
+            continue;
+          }
+
+          if (!currentCursus.formation) {
+            errors.push({ idEtudiantEcole, error: "La formation de l'étudiant n'est pas définie" });
+            continue;
+          }
+
+          // Create diploma
+          const diplome = await prisma.diplomeEcole.create({
+            data: {
+              diplomaHash: crypto.randomBytes(32).toString('hex'),
+              etablissement,
+              studentName: `${etudiant.nom} ${etudiant.prenom}`,
+              birthDate: etudiant.dateNaissance || new Date(),
+              diplomaTitle: titreDiplome,
+              diplomaType: diplomeType,  // Fixed: using the correct variable name
+              dateOfIssue: new Date(),
+              specialite: currentCursus.formation.nomFormation,
+              etudiantEcoleId: etudiant.idEtudiantEcole
+            }
+          });
+
+          result.push(diplome);
+        } catch (error) {
+          console.error(`Error creating diploma for student ${idEtudiantEcole}:`, error);
+          errors.push({ idEtudiantEcole, error: error.message });
+        }
+      }
+    });
+
+    if (result.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Aucun diplôme créé",
+        errors: errors.length > 0 ? errors : ["Unknown error occurred"]
+      });
+    }
+
+    res.json({
+      success: true,
+      count: result.length,
+      diplomes: result,
+      warnings: errors.length > 0 ? { errors } : undefined
+    });
+  } catch (error) {
+    console.error("Server error in creerDiplomesEcole:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur serveur lors de la création des diplômes",
+      error: error.message
+    });
+  }
+},
   async demanderDiplome(req, res) {
     try {
       // 1. Trouver l'étudiant correspondant

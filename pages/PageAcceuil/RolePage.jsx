@@ -9,8 +9,15 @@ const RolePage = () => {
   const router = useRouter();
 
   const handleRoleSelection = (role) => {
+
     setRole(role);
-    router.push(role === "UNIVERSITY" ? "/PageAcceuil/UniversityAuth" : "/PageAcceuil/FormPage");
+    if (role === "UNIVERSITY") {
+      router.push("/PageAcceuil/UniversityAuth");
+    } else if (role === "ECOLE") {
+      router.push("/PageAcceuil/EcoleAuth"); // Redirection vers EcoleAuth
+    } else {
+      router.push("/PageAcceuil/FormPage");
+    }
   };
 
   const colors = {

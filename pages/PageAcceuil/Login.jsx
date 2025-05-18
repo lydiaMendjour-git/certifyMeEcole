@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { motion } from 'framer-motion';
-import { FaArrowLeft, FaSpinner, FaEnvelope, FaLock , FaUserCircle, FaSignInAlt, FaUserPlus, FaShieldAlt} from 'react-icons/fa';
+import { FaArrowLeft, FaSpinner, FaEnvelope, FaLock , FaUserCircle, FaSignInAlt, FaUserPlus, FaShieldAlt, FaExclamationTriangle} from 'react-icons/fa';
 import { useRouter } from 'next/router';
 
 const Login = () => {
@@ -48,9 +48,15 @@ switch(response.data.account.role) {
     router.push(`/ministry/${safeToken}`);
     break;
   }
-  case 'ECOLE':
-    router.push('/ecole');
-    break;
+ 
+  
+  case 'ECOLE': {
+  const safeToken = encodeURIComponent(response.data.token);
+  localStorage.setItem('ecole_token', response.data.token);
+  console.log("Token reçu:", response.data.token); // Pour débogage
+  router.push(`/ecole/${safeToken}`);
+  break;
+}
   case 'STUDENT':
     const safeToken = encodeURIComponent(response.data.token);
     localStorage.setItem('student_token', response.data.token); 

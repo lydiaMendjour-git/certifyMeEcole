@@ -2,7 +2,5 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
-  "/PageAcceuil/Login": "pages/PageAcceuil/Login.js",
-  "/student/[token]": "pages/student/[token].js"
+  "/": "pages/index.js"
 }

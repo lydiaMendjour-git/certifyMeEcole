@@ -1,4 +1,4 @@
-// contexts/AuthContext.js
+// contexts/AuthContext.js (modifié)
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
@@ -13,18 +13,22 @@ export const AuthProvider = ({ children }) => {
       username: "",
       password: "",
       universityId: null,
+      ecoleId: null,
       name: "",
       prenom: "",
       phone: "",
       email: "",
-      roleEcole: "",
+      roleEcole: "", // PRIVEE, PROFESSIONNEL, FORMATION
     },
     universities: [],
+    ecoles: [],
     selectedUniversity: null,
+    selectedEcole: null,
+    selectedRoleEcole: null,
     errors: { password: "" }
   });
 
-  // Chargement des universités quand le rôle est UNIVERSITY
+  // Load universities when the role is UNIVERSITY
   useEffect(() => {
     if (authState.role === "UNIVERSITY") {
       axios.get("http://localhost:5000/universities-auth")
@@ -36,12 +40,42 @@ export const AuthProvider = ({ children }) => {
     }
   }, [authState.role]);
 
+  // Load schools when roleEcole is selected
+  useEffect(() => {
+    if (authState.role === "ECOLE" && authState.formData.roleEcole) {
+      axios.get(`http://localhost:5000/ecoles-auth?role=${authState.formData.roleEcole}`)
+        .then(res => setAuthState(prev => ({
+          ...prev,
+          ecoles: res.data
+        })))
+        .catch(console.error);
+    }
+  }, [authState.role, authState.formData.roleEcole]);
+
   const handleUniversitySelect = (e) => {
     const uniId = parseInt(e.target.value);
     setAuthState(prev => ({
       ...prev,
       selectedUniversity: uniId,
       formData: { ...prev.formData, universityId: uniId }
+    }));
+  };
+
+  const handleEcoleSelect = (e) => {
+    const ecoleId = parseInt(e.target.value);
+    setAuthState(prev => ({
+      ...prev,
+      selectedEcole: ecoleId,
+      formData: { ...prev.formData, ecoleId: ecoleId }
+    }));
+  };
+
+  const handleRoleEcoleSelect = (role) => {
+    setAuthState(prev => ({
+      ...prev,
+      formData: { ...prev.formData, roleEcole: role },
+      selectedEcole: null,
+      ecoles: []
     }));
   };
 
@@ -53,6 +87,7 @@ export const AuthProvider = ({ children }) => {
       errors: name === "password" ? validatePassword(value) : prev.errors
     }));
   };
+  
 
   const validatePassword = (value) => {
     const passwordRegex = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*~_\-+=`|\\(){}[\]:;"'<>,.?/]).{8,12}$/;
@@ -105,11 +140,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  return (
+   return (
     <AuthContext.Provider value={{
       ...authState,
       setAuthState,
       handleUniversitySelect,
+      handleEcoleSelect,
+      handleRoleEcoleSelect,
       handleChange,
       handleSubmit,
       setRole: (role) => setAuthState(prev => ({ ...prev, role }))
