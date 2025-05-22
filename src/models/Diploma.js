@@ -48,7 +48,7 @@ export default {
           continue;
         }
   
-        const dataToHash = `${idEtudiant}|${titreDiplome}|${typeDiplome}|${infosEtudiant.nom} ${infosEtudiant.prenom}|${infosEtudiant.dateNaissance.toISOString()}|${specialite}`;
+        const dataToHash = `${idEtudiant}|${titreDiplome}|${infosEtudiant.nom} ${infosEtudiant.prenom}|${infosEtudiant.dateNaissance.toISOString()}|${specialite}`;
         const hash = crypto.createHash('sha256').update(dataToHash).digest('hex');
   
         const newDiplome = await prisma.diplome.create({
@@ -118,6 +118,109 @@ async  validateDiplomaService(diplomaId) {
     data: { complete: true }
   });
 },
+ async getEcoleDiplomasToValidateService(ecoleId) {
+    return await prisma.diplomeEcole.findMany({
+      where: {
+        complete: false,
+        etudiantEcole: {
+          cursus: {
+            some: {
+              formation: {
+                ecoleId: parseInt(ecoleId)
+              }
+            }
+          }
+        }
+      },
+      include: {
+        etudiantEcole: true
+      }
+    });
+  },
+
+// Récupérer les diplômes validés d'une école
+async getValidatedEcoleDiplomasService(ecoleId) {
+    return await prisma.diplomeEcole.findMany({
+      where: {
+        complete: true,
+        etudiantEcole: {
+          cursus: {
+            some: {
+              formation: {
+                ecoleId: parseInt(ecoleId)
+              }
+            }
+          }
+        }
+      },
+      include: {
+        etudiantEcole: true
+      }
+    });
+  },
+
+
+// Valider un diplôme d'école
+  async validateEcoleDiplomaService(diplomaId) {
+    return await prisma.diplomeEcole.update({
+      where: { id: parseInt(diplomaId) },
+      data: { complete: true },
+      include: {
+        etudiantEcole: true
+      }
+    });
+  },
+// Valider tous les diplômes d'une école
+async validateAllEcoleDiplomasService(ecoleId) {
+    // On récupère d'abord les diplômes pour compter les types
+    const diplomas = await prisma.diplomeEcole.findMany({
+      where: {
+        complete: false,
+        etudiantEcole: {
+          cursus: {
+            some: {
+              formation: {
+                ecoleId: parseInt(ecoleId)
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // On fait la validation
+    const result = await prisma.diplomeEcole.updateMany({
+      where: {
+        complete: false,
+        etudiantEcole: {
+          cursus: {
+            some: {
+              formation: {
+                ecoleId: parseInt(ecoleId)
+              }
+            }
+          }
+        }
+      },
+      data: { complete: true }
+    });
+
+    // On compte les types de diplômes pour les notifications
+    const superieurCount = diplomas.filter(d => d.diplomaType === 'SUPERIEUR').length;
+    const professionnelCount = diplomas.filter(d => d.diplomaType === 'PROFESSIONNEL').length;
+
+    return {
+      ...result,
+      superieurCount,
+      professionnelCount
+    };
+  },
+
+  async rejectEcoleDiplomaService(diplomaId) {
+    return await prisma.diplomeEcole.delete({
+      where: { id: parseInt(diplomaId) }
+    });
+  },
 
 // Valider TOUS les diplômes non-validés d'une université
 async validateAllDiplomasService(universityId) {

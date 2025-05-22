@@ -177,6 +177,45 @@ async uploadStudents(req, res) {
     });
   }
 },
+async getStudentsByFormationAndAnnee(req, res) {
+  try {
+    const { formationId } = req.params;
+    const { anneeId } = req.query;
+
+    if (!formationId || !anneeId) {
+      return res.status(400).json({ error: 'formationId et anneeId sont requis' });
+    }
+
+    const students = await prisma.etudiantEcole.findMany({
+      where: {
+        cursus: {
+          some: {
+            formationId: parseInt(formationId),
+            anneeId: parseInt(anneeId)
+          }
+        }
+      },
+      include: {
+        cursus: {
+          where: {
+            formationId: parseInt(formationId),
+            anneeId: parseInt(anneeId)
+          },
+          include: {
+            formation: true,
+            annee: true
+          }
+        }
+      }
+    });
+
+    res.json(students);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des étudiants:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+}
+,
 
   async createStudent(req, res) {
     try {

@@ -95,17 +95,59 @@ const DepartmentController = {
   },
   
   // Met à jour le nom d'un département
-  async  updateDepartment (req, res)  {
-    try {
-      const department = await Department.update(
-        req.params.id,
-        req.body.nomDepart
-      );
-      res.json(department);
-    } catch (error) {
-      res.status(500).json({ error: 'Error updating department' });
+  async updateDepartment(req, res) {
+  try {
+    const { id } = req.params;
+    const { nomDepart, idFaculty } = req.body;
+
+    // Vérifier si le département existe
+    const department = await prisma.department.findUnique({
+      where: { idDepart: parseInt(id) }
+    });
+
+    if (!department) {
+      return res.status(404).json({ error: 'Département non trouvé' });
     }
-  },
+
+    // Vérifier si la nouvelle faculté existe
+    if (idFaculty && idFaculty !== department.idFaculty) {
+      const faculty = await prisma.faculty.findUnique({
+        where: { idFaculty: parseInt(idFaculty) }
+      });
+
+      if (!faculty) {
+        return res.status(400).json({ error: 'Faculté non trouvée' });
+      }
+    }
+
+    // Mettre à jour le département
+    const updatedDepartment = await prisma.department.update({
+      where: { idDepart: parseInt(id) },
+      data: { 
+        nomDepart,
+        ...(idFaculty && { idFaculty: parseInt(idFaculty) })
+      }
+    });
+
+    // Si la faculté a changé, mettre à jour les cursus universitaires
+    if (idFaculty && idFaculty !== department.idFaculty) {
+      await prisma.cursusUniversitaire.updateMany({
+        where: { idDepart: parseInt(id) },
+        data: { idFaculty: parseInt(idFaculty) }
+      });
+    }
+
+    res.json(updatedDepartment);
+  } catch (error) {
+    console.error('Error updating department:', error);
+    res.status(500).json({ 
+      error: 'Error updating department',
+      details: error.message 
+    });
+  }
+},
+
+
   
   //Supprime un département
   async deleteDepartment (req, res)  {

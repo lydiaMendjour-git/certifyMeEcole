@@ -1,0 +1,4 @@
+nom,prenom,email,matricule,telephone,dateNaissance,lieuNaissance,section,groupe,filiere,specialite,niveau,moyenneAnnuelle
+Mendjour,Lydia,lydia.mendjour@esaa.dz,MAT20240001,0555123456,2002-05-15,Alger,A,1,Gestion,Comptabilité,2,15.75
+Belkacem,Amir,amir.belkacem@esaa.dz,MAT20240002,0555234567,2001-11-22,Oran,B,2,Marketing,Digital,3,16.20
+Boukadoum,Nadia,nadia.boukadoum@esaa.dz,MAT20240003,0555345678,2000-07-30,Constantine,A,1,Finance,Audit,4,17.80

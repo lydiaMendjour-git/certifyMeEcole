@@ -38,18 +38,20 @@ model Account {
 }
 
 model University {
-  idUni            Int          @id @default(autoincrement())
+  idUni            Int            @id @default(autoincrement())
   nomUni           String
   adresseUni       String
   telephoneUni     String
-  emailUni         String       @unique
-  accountId        Int          @unique
-  walletAddress    String?      @unique
-  walletIV         String       @default("initial_iv_value")
+  emailUni         String         @unique
+  accountId        Int            @unique
+  walletAddress    String?        @unique
+  walletIV         String         @default("initial_iv_value")
   walletPrivateKey String?
+  modeleDiplomeId  Int?
   departments      Department[]
   faculties        Faculty[]
-  account          Account      @relation("UniversityToAccount", fields: [accountId], references: [id])
+  account          Account        @relation("UniversityToAccount", fields: [accountId], references: [id])
+  ModeleDiplome    ModeleDiplome? @relation(fields: [modeleDiplomeId], references: [idModele])
 }
 
 model University_OFFICIAL {
@@ -61,15 +63,21 @@ model University_OFFICIAL {
 }
 
 model Ecole {
-  idEcole        Int          @id @default(autoincrement())
-  nomEcole       String
-  telephoneEcole String
-  emailEcole     String       @unique
-  accountId      Int          @unique
-  role           RoleEcole
-  account        Account      @relation("EcoleToAccount", fields: [accountId], references: [id])
-  annees         EcoleAnnee[]
-  formations     Formation[]
+  idEcole            Int                 @id @default(autoincrement())
+  nomEcole           String
+  telephoneEcole     String
+  emailEcole         String              @unique
+  accountId          Int                 @unique
+  role               RoleEcole
+  walletAddress      String?             @unique
+  walletIV           String              @default("initial_iv_value")
+  walletPrivateKey   String?
+  modeleDiplomeId    Int?
+  adresseEcole       String
+  account            Account             @relation("EcoleToAccount", fields: [accountId], references: [id])
+  ModeleDiplomeECOLE ModeleDiplomeECOLE? @relation(fields: [modeleDiplomeId], references: [idModele])
+  annees             EcoleAnnee[]
+  formations         Formation[]
 }
 
 model Ecole_OFFICIAL {
@@ -78,6 +86,7 @@ model Ecole_OFFICIAL {
   telephoneEcole String
   emailEcole     String    @unique
   role           RoleEcole
+  adresseEcole   String
 }
 
 model Etudiant_account {
@@ -119,7 +128,7 @@ model Etudiant {
   dateNaissance       DateTime
   lieuNaissance       String
   CursusUniversitaire CursusUniversitaire[]
-  diplomes            Diplome[]
+  diplomes            Diplome[]             @relation("DiplomesEtudiant")
 }
 
 model EtudiantMinistere {
@@ -144,6 +153,7 @@ model Ministere {
   walletAddress    String?             @unique
   walletIV         String              @default("initial_iv_value")
   walletPrivateKey String?
+  typeMinistere    MinistereType       @default(ENSEIGNEMENT_SUPERIEUR)
   etudiants        EtudiantMinistere[]
   account          Account             @relation("MinistereToAccount", fields: [accountId], references: [id])
 }
@@ -160,7 +170,7 @@ model Diplome {
   speciality    String
   complete      Boolean
   etudiantId    Int
-  etudiant      Etudiant    @relation(fields: [etudiantId], references: [idEtudiant])
+  etudiant      Etudiant    @relation("DiplomesEtudiant", fields: [etudiantId], references: [idEtudiant], onDelete: Cascade)
 
   @@index([etudiantId])
 }
@@ -210,11 +220,9 @@ model Formation {
   duree         String?
   typeFormation String
   ecoleId       Int
-  cursus        CursusEcole[]  // Relation directe avec CursusEcole
+  cursus        CursusEcole[]
   ecole         Ecole         @relation(fields: [ecoleId], references: [idEcole])
 }
-
-
 
 model EtudiantEcole {
   idEtudiantEcole Int            @id @default(autoincrement())
@@ -223,10 +231,10 @@ model EtudiantEcole {
   email           String         @unique
   matricule       String
   moyenne         Float?
-  dateNaissance   DateTime       // Changé en obligatoire
-  lieuNaissance   String?
   dateInscription DateTime       @default(now())
   telephone       String?
+  dateNaissance   DateTime
+  lieuNaissance   String?
   cursus          CursusEcole[]
   diplomes        DiplomeEcole[] @relation("DiplomesEtudiant")
 }
@@ -240,29 +248,24 @@ model EcoleAnnee {
   cursus       CursusEcole[]
   ecole        Ecole         @relation(fields: [ecoleId], references: [idEcole])
 
-
   @@unique([annee, ecoleId])
 }
 
-enum DiplomeEcoleType {
-  PROFESSIONNEL
-  SUPERIEUR
-}
-
 model DiplomeEcole {
-  id             Int             @id @default(autoincrement())
-  diplomaHash    String          @unique
-  etablissement  String
-  studentName    String
-  birthDate      DateTime
-  diplomaTitle   String
-  diplomaType    DiplomeEcoleType
-  dateOfIssue    DateTime        @default(now())
-  specialite     String
-  moyenne        Float?
-  mention        String?
-  etudiantEcole  EtudiantEcole   @relation("DiplomesEtudiant", fields: [etudiantEcoleId], references: [idEtudiantEcole])
+  id              Int           @id @default(autoincrement())
+  diplomaHash     String        @unique
+  etablissement   String
+  studentName     String
+  birthDate       DateTime
+  diplomaTitle    String
+  dateOfIssue     DateTime      @default(now())
+  specialite      String
+  moyenne         Float?
+  mention         String?
   etudiantEcoleId Int
+  complete        Boolean       @default(false)
+  diplomaType     String
+  etudiantEcole   EtudiantEcole @relation("DiplomesEtudiant", fields: [etudiantEcoleId], references: [idEtudiantEcole])
 
   @@index([etudiantEcoleId])
 }
@@ -271,14 +274,33 @@ model CursusEcole {
   id          Int           @id @default(autoincrement())
   moyenne     Float?
   etudiantId  Int
-  formationId Int
   anneeId     Int
+  formationId Int
   annee       EcoleAnnee    @relation(fields: [anneeId], references: [id])
   etudiant    EtudiantEcole @relation(fields: [etudiantId], references: [idEtudiantEcole])
   formation   Formation     @relation(fields: [formationId], references: [idFormation])
 
   @@unique([etudiantId, anneeId, formationId])
-  @@index([formationId]) // Ajouté
+  @@index([formationId])
+}
+
+model ModeleDiplome {
+  idModele     Int          @id @default(autoincrement())
+  nomModele    String
+  cheminModele String
+  University   University[]
+}
+
+model ModeleDiplomeECOLE {
+  idModele     Int     @id @default(autoincrement())
+  nomModele    String
+  cheminModele String
+  Ecole        Ecole[]
+}
+
+enum MinistereType {
+  ENSEIGNEMENT_SUPERIEUR
+  FORMATION_PROFESSIONNELLE
 }
 
 enum Role {

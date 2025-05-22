@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { prisma } from '../prismaClient.js';
 import Ecole from '../models/Ecole.js';
 import Formation from '../models/Formation.js';
+import { RoleEcole } from '../enums.js';
 
 export default {
   async getEcoles(req, res) {
@@ -42,15 +43,73 @@ export default {
       res.status(500).json({ error: 'Erreur serveur' });
     }
   },
-  async getEcolesByRole(req, res) {
-  const { role } = req.query;
-
+async getEcolesByRole(req, res) {
   try {
+    const { role } = req.params;
+    
+    console.log(`[API] Demande des écoles de type: ${role}`, {
+      ip: req.ip,
+      timestamp: new Date().toISOString()
+    });
+
+    // Validation stricte du rôle
+    if (!Object.values(RoleEcole).includes(role)) {
+      const errorMsg = `Rôle "${role}" non reconnu`;
+      console.warn(`[VALIDATION] ${errorMsg}`, {
+        rolesValides: Object.values(RoleEcole)
+      });
+      return res.status(400).json({ 
+        error: errorMsg,
+        roles_supportés: Object.values(RoleEcole),
+        code: "ROLE_INVALIDE"
+      });
+    }
+
+    // Récupération des données
     const ecoles = await Ecole.getEcolesByRole(role);
-    res.status(200).json(ecoles);
+
+    // Normalisation des données
+    const reponse = {
+      meta: {
+        count: ecoles.length,
+        roleDemande: role,
+        date: new Date().toISOString()
+      },
+      data: ecoles.map(ecole => ({
+        ...ecole,
+        account: ecole.account ? {
+          ...ecole.account,
+          // Masquer les champs sensibles si nécessaire
+          email: ecole.account.isVerified ? ecole.account.email : undefined
+        } : {
+          id: null,
+          status: 'COMPTE_ABSENT',
+          lastSync: new Date().toISOString()
+        }
+      }))
+    };
+
+    console.log(`[SUCCES] Retour de ${ecoles.length} écoles de type ${role}`);
+    
+    return res.status(200).json(reponse);
+
   } catch (error) {
-    console.error("Erreur dans le contrôleur :", error);
-    res.status(500).json({ error: "Erreur lors de la récupération des écoles." });
+    const errorId = crypto.randomUUID();
+    console.error(`[ERREUR ${errorId}]`, {
+      message: error.message,
+      stack: error.stack,
+      params: req.params,
+      url: req.originalUrl
+    });
+    
+    return res.status(500).json({
+      error: "Erreur lors de la récupération des écoles",
+      reference: errorId,
+      ...(process.env.NODE_ENV === 'development' && {
+        details: error.message,
+        stack: error.stack.split("\n")[0] // Première ligne seulement
+      })
+    });
   }
 }
 

@@ -106,6 +106,146 @@ const StudentController = {
     }
   },
 
+ // Ajouter ces méthodes au contrôleur existant
+
+async getStudentsByDepartment(req, res) {
+  try {
+    const { departmentId } = req.params;
+    const students = await Student.getByDepartment(departmentId);
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+},
+
+async createStudent(req, res) {
+  try {
+    console.log("Données reçues:", req.body);
+    const student = await Student.create(req.body);
+    res.status(201).json(student);
+  } catch (error) {
+    console.error("Erreur détaillée:", error);
+    res.status(500).json({ 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error : undefined
+    });
+  }
+},
+async updateStudent(req, res) {
+  try {
+    const { id } = req.params;
+    const { 
+      nom, 
+      prenom, 
+      email, 
+      matricule, 
+      telephone, 
+      dateNaissance, 
+      lieuNaissance,
+      CursusUniversitaire
+    } = req.body;
+
+    // Validation des champs obligatoires
+    if (!nom || !prenom || !email || !matricule) {
+      return res.status(400).json({ 
+        error: 'Nom, prénom, email et matricule sont obligatoires' 
+      });
+    }
+
+    // Augmenter le timeout de la transaction
+    const updatedStudent = await prisma.$transaction(async (tx) => {
+      // 1. Mettre à jour l'étudiant
+      const student = await tx.etudiant.update({
+        where: { idEtudiant: parseInt(id) },
+        data: {
+          nom,
+          prenom,
+          email,
+          matricule,
+          telephone: telephone || null,
+          dateNaissance: dateNaissance ? new Date(dateNaissance) : new Date('2000-01-01'),
+          lieuNaissance: lieuNaissance || null
+        },
+        include: {
+          CursusUniversitaire: true
+        }
+      });
+
+      // 2. Mettre à jour le cursus universitaire si fourni
+      if (CursusUniversitaire && student.CursusUniversitaire.length > 0) {
+        const cursusId = student.CursusUniversitaire[0].id;
+        await tx.cursusUniversitaire.update({
+          where: { id: cursusId },
+          data: {
+            section: CursusUniversitaire.section || '',
+            groupe: CursusUniversitaire.groupe || '',
+            filiere: CursusUniversitaire.filiere || '',
+            specialite: CursusUniversitaire.specialite || '',
+            niveau: CursusUniversitaire.niveau ? parseInt(CursusUniversitaire.niveau) : 1,
+            moyenneAnnuelle: CursusUniversitaire.moyenneAnnuelle ? 
+              parseFloat(CursusUniversitaire.moyenneAnnuelle) : null,
+            // Conserver les relations existantes
+            idFaculty: student.CursusUniversitaire[0].idFaculty,
+            idDepart: student.CursusUniversitaire[0].idDepart,
+            idAnnee: student.CursusUniversitaire[0].idAnnee
+          }
+        });
+      }
+
+      // Recharger les données mises à jour
+      return await tx.etudiant.findUnique({
+        where: { idEtudiant: parseInt(id) },
+        include: { CursusUniversitaire: true }
+      });
+    }, {
+      maxWait: 10000, // Augmenter le timeout à 10 secondes
+      timeout: 10000
+    });
+
+    res.json(updatedStudent);
+
+  } catch (error) {
+    console.error('Error updating student:', error);
+    res.status(500).json({ 
+      error: 'Error updating student',
+      details: process.env.NODE_ENV === 'development' ? error : undefined
+    });
+  }
+},
+
+// In StudentController.js
+async deleteStudent(req, res) {
+  try {
+    const { id } = req.params;
+    const parsedId = parseInt(id);
+
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: 'ID étudiant invalide' });
+    }
+
+    // Utiliser la méthode du modèle
+    await Student.deleteStudent(parsedId);
+
+    res.status(204).end();
+  } catch (error) {
+    console.error('Erreur lors de la suppression de l\'étudiant:', error);
+    
+    // Gestion des erreurs spécifiques
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Étudiant non trouvé' });
+    }
+    
+    res.status(500).json({ 
+      error: 'Erreur lors de la suppression de l\'étudiant',
+      details: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        code: error.code,
+        meta: error.meta
+      } : undefined
+    });
+  }
+}
+,
   async getStudentsByAnnee(req, res) {
     try {
       const { idAnnee } = req.params;

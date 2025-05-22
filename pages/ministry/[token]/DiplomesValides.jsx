@@ -3,8 +3,6 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import HeaderMinistry from './HeaderMinistry.jsx';
-
-
 import { 
   FaUniversity,
   FaUserGraduate,
@@ -16,35 +14,28 @@ import {
 } from 'react-icons/fa';
 
 const DiplomeValidés = () => {
-
-    // Dans DiplomesValidés.jsx
   const router = useRouter();
-    const { universityId } = router.query;
+  const { universityId } = router.query;
   const [token, setToken] = useState(null);
-
-
-  
-  const colors = {
-    primary: '#2F855A',       // Vert validation – sérieux, rassurant
-    secondary: '#2D3748',     // Gris charbon – autorité, modernité
-    accent: '#38A169',        // Vert accent – pour boutons/CTA
-    lightBg: '#F7FAFC',       // Fond clair neutre – pro et clean
-    darkBg: '#1A202C',        // Fond sombre – header/footer élégant
-    textDark: '#1C1C1C',      // Texte principal – bonne lisibilité
-    textLight: '#718096',     // Texte secondaire – descriptions, placeholders
-    border: '#CBD5E0',        // Bordures subtiles – pour structurer sans surcharger
-    success: '#2F855A',       // Succès – même que primary pour cohérence
-    error: '#C53030',         // Erreur – rouge sérieux
-    warning: '#D69E2E'        // Avertissement – or doux, pas criard
-  };
-  
-
   const [diplomas, setDiplomas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [universityInfo, setUniversityInfo] = useState(null);
 
-  // Couleurs par type de diplôme
+  const colors = {
+    primary: '#2F855A',
+    secondary: '#2D3748',
+    accent: '#38A169',
+    lightBg: '#F7FAFC',
+    darkBg: '#1A202C',
+    textDark: '#1C1C1C',
+    textLight: '#718096',
+    border: '#CBD5E0',
+    success: '#2F855A',
+    error: '#C53030',
+    warning: '#D69E2E'
+  };
+
   const diplomaTypeColors = {
     'DIPLOME DE MASTER': colors.primary,
     'DIPLOME DE LICENCE': colors.secondary,
@@ -60,15 +51,16 @@ const DiplomeValidés = () => {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem('ministere_token');
+    setToken(token);
+    
     if (!universityId) return;
 
     const fetchData = async () => {
       try {
-        // Récupérer les informations de l'université
         const uniResponse = await axios.get(`http://localhost:5000/universites/${universityId}`);
         setUniversityInfo(uniResponse.data);
 
-        // Récupérer les diplômes validés
         const diplomasResponse = await axios.get(`http://localhost:5000/${universityId}/diplomes-valides`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -152,92 +144,58 @@ const DiplomeValidés = () => {
     }}>
       <HeaderMinistry />
 
-      {/* Contenu principal */}
       <div style={{
         maxWidth: '1400px',
         margin: '0 auto',
         padding: '0 1rem'
       }}>
-    
-        {/* Barre d'actions */}
         <div style={{
-           display: 'flex',
-           justifyContent: 'space-between',
-           padding: '1rem 0.3rem',
-           margin: '1rem 0',
-          }}>
-
-          {/* Titre université */}
+          display: 'flex',
+          justifyContent: 'space-between',
+          padding: '1rem 0.3rem',
+          margin: '1rem 0',
+        }}>
           {universityInfo && (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '1rem'
-    }}>
-      <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-           
-             }}>
-             {/* Bouton Retour - Version améliorée */}
-        <motion.button
-          whileHover={{ 
-            backgroundColor: `${colors.primary}08`,
-            transform: 'translateY(-1px)'
-          }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => router.back()}
-          style={{
-            backgroundColor: 'transparent',
-            color: colors.primary,
-            border: `1px solid ${colors.primary}50`,
-            borderRadius: '8px',
-            padding: '0.5rem 0,5rem',
-            fontSize: '0.82rem',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.2rem',
-            minWidth: '50px',
-            justifyContent: 'center'
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
-            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        
-        </motion.button>
-      <div>
-        <div style={{
-          fontSize: '0.8rem',
-          fontWeight: '500',
-          color: colors.textLight,
-          opacity: 0.85,
-          marginBottom: '0.2rem'
-        }}>
-                  Diplômes validés pour
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <motion.button
+                  whileHover={{ backgroundColor: `${colors.primary}08`, transform: 'translateY(-1px)' }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => router.back()}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: colors.primary,
+                    border: `1px solid ${colors.primary}50`,
+                    borderRadius: '8px',
+                    padding: '0.5rem 0,5rem',
+                    fontSize: '0.82rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.2rem',
+                    minWidth: '50px',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
+                    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </motion.button>
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '500', color: colors.textLight, opacity: 0.85, marginBottom: '0.2rem' }}>
+                    Diplômes validés pour
+                  </div>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: '520', color: colors.textDark, margin: 0, letterSpacing: '-0.015em' }}>
+                    {universityInfo.nomUni}
+                  </h2>
                 </div>
-                <h2 style={{
-          fontSize: '1.35rem',
-          fontWeight: '520',
-          color: colors.textDark,
-          margin: 0,
-          letterSpacing: '-0.015em'
-        }}>
-                  {universityInfo.nomUni}
-                </h2>
               </div>
-            </div>  </div>
+            </div>
           )}
-
-          {/* Bouton Retour */}
-         
         </div>
 
-        {/* Tableau des diplômes */}
         {diplomas.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
@@ -263,21 +221,10 @@ const DiplomeValidés = () => {
             }}>
               <FaUniversity size={32} color={colors.primary} />
             </div>
-            <h3 style={{ 
-              fontSize: '1.4rem',
-              fontWeight: '600',
-              color: colors.textDark,
-              marginBottom: '0.5rem'
-            }}>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: '600', color: colors.textDark, marginBottom: '0.5rem' }}>
               Aucun diplôme validé
             </h3>
-            <p style={{ 
-              color: colors.textLight,
-              maxWidth: '400px',
-              margin: '0 auto',
-              lineHeight: '1.6',
-              fontSize: '0.95rem'
-            }}>
+            <p style={{ color: colors.textLight, maxWidth: '400px', margin: '0 auto', lineHeight: '1.6', fontSize: '0.95rem' }}>
               Cette université n'a pas encore de diplômes validés dans le système.
             </p>
           </motion.div>
@@ -293,7 +240,6 @@ const DiplomeValidés = () => {
               border: '1px solid rgba(0, 0, 0, 0.03)'
             }}
           >
-            {/* En-tête du tableau */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1.5fr 1fr 1fr 120px',
@@ -311,7 +257,6 @@ const DiplomeValidés = () => {
               <div>Date de validation</div>
             </div>
 
-            {/* Lignes du tableau */}
             <AnimatePresence>
               {diplomas.map((diploma, index) => (
                 <motion.div
@@ -326,28 +271,14 @@ const DiplomeValidés = () => {
                     borderBottom: `1px solid ${colors.lightBg}`,
                     alignItems: 'center',
                     transition: 'background 0.2s ease',
-                    ':hover': {
-                      backgroundColor: `${colors.lightBg}20`
-                    }
+                    ':hover': { backgroundColor: `${colors.lightBg}20` }
                   }}
                 >
-                  {/* Nom étudiant */}
                   <div>
-                    <div style={{ 
-                      fontWeight: '500',
-                      color: colors.textDark,
-                      marginBottom: '0.15rem',
-                      fontSize: '0.95rem'
-                    }}>
+                    <div style={{ fontWeight: '500', color: colors.textDark, marginBottom: '0.15rem', fontSize: '0.95rem' }}>
                       {diploma.studentName}
                     </div>
-                    <div style={{ 
-                      fontSize: '0.8rem',
-                      color: colors.textLight,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem'
-                    }}>
+                    <div style={{ fontSize: '0.8rem', color: colors.textLight, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                         <path d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z" stroke="currentColor" strokeWidth="1.5"/>
                       </svg>
@@ -355,7 +286,6 @@ const DiplomeValidés = () => {
                     </div>
                   </div>
 
-                  {/* Type de diplôme */}
                   <div>
                     <div style={{
                       display: 'inline-flex',
@@ -374,26 +304,13 @@ const DiplomeValidés = () => {
                     </div>
                   </div>
 
-                  {/* Spécialité */}
-                  <div style={{
-                    fontWeight: '500',
-                    color: colors.textDark,
-                    fontSize: '0.9rem'
-                  }}>
+                  <div style={{ fontWeight: '500', color: colors.textDark, fontSize: '0.9rem' }}>
                     {diploma.speciality}
                   </div>
 
-                  {/* Date de validation */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    color: colors.success,
-                    fontSize: '0.85rem',
-                    fontWeight: '500'
-                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: colors.success, fontSize: '0.85rem', fontWeight: '500' }}>
                     <FaCheckCircle size={12} />
-                    {new Date(diploma.validationDate).toLocaleDateString('fr-FR', {
+                    {new Date(diploma.dateOfIssue).toLocaleDateString('fr-FR', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric'

@@ -109,7 +109,8 @@ const handleEcoleSubmit = async (e) => {
       email: ecoleSelectionnee.emailEcole,
       name: ecoleSelectionnee.nomEcole,
       phone: ecoleSelectionnee.telephoneEcole,
-      roleEcole: ecoleSelectionnee.role
+      roleEcole: ecoleSelectionnee.role,
+      adresseEcole: ecoleSelectionnee.adresseEcole
     };
 
     console.log("Envoi à /register avec payload:", payload);

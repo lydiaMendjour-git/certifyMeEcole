@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/router';
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
 
 function CreerDiplomeEcole() {
   const router = useRouter();
@@ -11,12 +12,17 @@ function CreerDiplomeEcole() {
   const [formations, setFormations] = useState([]);
   const [annees, setAnnees] = useState([]);
   const [students, setStudents] = useState([]);
+  const [ecoleType, setEcoleType] = useState(null);
+  const [diplomeTypes, setDiplomeTypes] = useState([]);
+  const [defaultDiplomeType, setDefaultDiplomeType] = useState("");
+  const [customDiplomaName, setCustomDiplomaName] = useState("");
+  const [showCustomDiplomaInput, setShowCustomDiplomaInput] = useState(false);
   
   // États de l'interface
   const [etudiantsSelectionnes, setEtudiantsSelectionnes] = useState([]);
   const [formVisible, setFormVisible] = useState(false);
   const [titreDiplome, setTitreDiplome] = useState("");
-  const [diplomeType, setDiplomeType] = useState("SUPERIEUR");
+  const [diplomeType, setDiplomeType] = useState("");
   const [loading, setLoading] = useState({
     annees: false,
     formations: false,
@@ -32,6 +38,63 @@ function CreerDiplomeEcole() {
     anneeId: "",
     formationId: "",
   });
+
+  // Déterminer le type d'école et les diplômes disponibles
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const token = localStorage.getItem('ecole_token') || token;
+        const decoded = jwt.decode(token);
+        const type = decoded?.roleEcole;
+        setEcoleType(type);
+
+        if (type === 'ECOLE_SUPERIEURE') {
+          setDiplomeTypes([
+            'Licence académique',
+            'Licence professionnelle',
+            'Master académique',
+            'Master professionnel',
+            'Diplôme d\'Ingénieur d\'État',
+            'Diplôme de l\'École Normale Supérieure (ENS)',
+            'Diplôme de l\'École Supérieure de Commerce (ESC)',
+            'Autre (à préciser)'
+          ]);
+          setDefaultDiplomeType('Licence académique');
+          setDiplomeType('SUPERIEUR');
+        } else {
+          setDiplomeTypes([
+            'Certificat de Qualification Professionnelle (CQP)',
+            'Certificat d\'Aptitude Professionnelle (CAP)',
+            'Brevet de Technicien (BT)',
+            'Brevet de Technicien Supérieur (BTS)',
+            'Technicien Spécialisé (TS)',
+            'Diplôme de Technicien Supérieur (DTS)',
+            'Technicien (T)',
+            'Agent Technique',
+            'Autre (à préciser)'
+          ]);
+          setDefaultDiplomeType('Brevet de Technicien Supérieur (BTS)');
+          setDiplomeType('PROFESSIONNEL');
+        }
+
+        setTitreDiplome(defaultDiplomeType);
+      } catch (error) {
+        console.error("Erreur:", error);
+      }
+    };
+
+    loadInitialData();
+  }, [token]);
+
+  // Gérer la sélection du diplôme
+  const handleDiplomaTypeChange = (e) => {
+    const selectedValue = e.target.value;
+    setTitreDiplome(selectedValue);
+    setShowCustomDiplomaInput(selectedValue === 'Autre (à préciser)');
+    if (selectedValue !== 'Autre (à préciser)') {
+      setCustomDiplomaName("");
+    }
+  };
 
   // Chargement des années scolaires
   useEffect(() => {
@@ -136,20 +199,20 @@ function CreerDiplomeEcole() {
       setError(null);
 
       // Validate all required fields
-      if (!titreDiplome) {
-        throw new Error("Veuillez sélectionner un type de diplôme");
+      const finalDiplomaName = showCustomDiplomaInput ? customDiplomaName : titreDiplome;
+      
+      if (!finalDiplomaName) {
+        throw new Error("Veuillez sélectionner ou saisir un type de diplôme");
       }
-      if (!diplomeType) {
-        throw new Error("Veuillez sélectionner un type d'établissement");
-      }
+      
       if (etudiantsSelectionnes.length === 0) {
         throw new Error("Veuillez sélectionner au moins un étudiant");
       }
 
       const payload = {
         anneeId: Number(filters.anneeId),
-        titreDiplome,
-        diplomeType,
+        titreDiplome: finalDiplomaName,
+        diplomeType: ecoleType === 'ECOLE_SUPERIEURE' ? 'SUPERIEUR' : 'PROFESSIONNEL',
         etudiants: etudiantsSelectionnes.map(id => ({ idEtudiantEcole: Number(id) })),
         etablissement: localStorage.getItem('ecole_name') || "Établissement non spécifié"
       };
@@ -163,7 +226,6 @@ function CreerDiplomeEcole() {
       });
 
       if (!response.data.success) {
-        // Handle specific errors from server
         if (response.data.errors) {
           const errorMessages = response.data.errors.map(e => 
             `Étudiant ${e.idEtudiantEcole}: ${e.error}`
@@ -177,8 +239,9 @@ function CreerDiplomeEcole() {
       setFormVisible(false);
       setEtudiantsSelectionnes([]);
       setSearchMatricule("");
+      setCustomDiplomaName("");
+      setShowCustomDiplomaInput(false);
     } catch (error) {
-      // Format error message for display
       const errorMessage = error.response?.data?.errors 
         ? error.response.data.errors.map(e => e.error).join('\n')
         : error.message;
@@ -190,48 +253,47 @@ function CreerDiplomeEcole() {
   };
 
   // Fonction de recherche par matricule
-const rechercherParMatricule = async () => {
-  if (!searchMatricule.trim()) {
-    setError("Veuillez entrer un matricule");
-    return;
-  }
-
-  try {
-    setLoading(prev => ({...prev, search: true}));
-    setError(null);
-
-    const response = await axios.get(`${API_BASE_URL}/cursus-ecole/etudiant/${encodeURIComponent(searchMatricule)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 10000
-    });
-
-    // Adaptez la structure de réponse
-    if (response.data) {
-      const studentData = response.data;
-      const formattedStudent = {
-        idEtudiantEcole: studentData.id || studentData.idEtudiantEcole, // Prend en compte les deux cas
-        nom: studentData.nom,
-        prenom: studentData.prenom,
-        matricule: studentData.matricule
-      };
-      setStudents([formattedStudent]);
-    } else {
-      setError("Aucun étudiant trouvé avec ce matricule");
-      setStudents([]);
+  const rechercherParMatricule = async () => {
+    if (!searchMatricule.trim()) {
+      setError("Veuillez entrer un matricule");
+      return;
     }
-  } catch (err) {
-    console.error("Erreur recherche:", err);
-    setError(err.response?.data?.error || err.message || "Erreur lors de la recherche");
-    setStudents([]);
-  } finally {
-    setLoading(prev => ({...prev, search: false}));
-  }
-};
-  // Réinitialiser la recherche et afficher tous les étudiants
+
+    try {
+      setLoading(prev => ({...prev, search: true}));
+      setError(null);
+
+      const response = await axios.get(`${API_BASE_URL}/cursus-ecole/etudiant/${encodeURIComponent(searchMatricule)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000
+      });
+
+      if (response.data) {
+        const studentData = response.data;
+        const formattedStudent = {
+          idEtudiantEcole: studentData.id || studentData.idEtudiantEcole,
+          nom: studentData.nom,
+          prenom: studentData.prenom,
+          matricule: studentData.matricule
+        };
+        setStudents([formattedStudent]);
+      } else {
+        setError("Aucun étudiant trouvé avec ce matricule");
+        setStudents([]);
+      }
+    } catch (err) {
+      console.error("Erreur recherche:", err);
+      setError(err.response?.data?.error || err.message || "Erreur lors de la recherche");
+      setStudents([]);
+    } finally {
+      setLoading(prev => ({...prev, search: false}));
+    }
+  };
+
+  // Réinitialiser la recherche
   const resetSearch = () => {
     setSearchMatricule("");
     setError(null);
-    // Recharger les étudiants selon les filtres actuels
     if (filters.anneeId) {
       const loadStudents = async () => {
         try {
@@ -372,28 +434,47 @@ const rechercherParMatricule = async () => {
               <label>Type de diplôme:</label>
               <select
                 value={titreDiplome}
-                onChange={(e) => setTitreDiplome(e.target.value)}
+                onChange={handleDiplomaTypeChange}
                 required
               >
-                <option value="">Sélectionnez un diplôme</option>
-                <option value="LICENCE">Licence</option>
-                <option value="MASTER">Master</option>
-                <option value="BTS">BTS</option>
-                <option value="DUT">DUT</option>
-                <option value="DOCTORAT">Doctorat</option>
+                {diplomeTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
             </div>
 
+            {showCustomDiplomaInput && (
+              <div className="form-group">
+                <label>
+                  Nom du diplôme personnalisé ({ecoleType === 'ECOLE_SUPERIEURE' 
+                    ? 'Reconnu par le Ministère de l\'Enseignement Supérieur' 
+                    : 'Reconnu par le Ministère de la Formation Professionnelle'})
+                </label>
+                <input
+                  type="text"
+                  value={customDiplomaName}
+                  onChange={(e) => setCustomDiplomaName(e.target.value)}
+                  placeholder="Entrez le nom officiel du diplôme"
+                  required={showCustomDiplomaInput}
+                />
+                <p className="hint-text">
+                  Ce diplôme doit être préalablement reconnu par le {ecoleType === 'ECOLE_SUPERIEURE' 
+                    ? 'Ministère de l\'Enseignement Supérieur' 
+                    : 'Ministère de la Formation Professionnelle'}
+                </p>
+              </div>
+            )}
+
             <div className="form-group">
               <label>Type d'établissement:</label>
-              <select
-                value={diplomeType}
-                onChange={(e) => setDiplomeType(e.target.value)}
-                required
-              >
-                <option value="SUPERIEUR">Supérieur</option>
-                <option value="PROFESSIONNEL">Professionnel</option>
-              </select>
+              <input
+                type="text"
+                value={ecoleType === 'ECOLE_SUPERIEURE' 
+                  ? 'Établissement d\'Enseignement Supérieur' 
+                  : 'Centre de Formation Professionnelle'}
+                readOnly
+                disabled
+              />
             </div>
 
             <div className="selected-count">
@@ -408,6 +489,8 @@ const rechercherParMatricule = async () => {
                 onClick={() => {
                   setFormVisible(false);
                   setError(null);
+                  setCustomDiplomaName("");
+                  setShowCustomDiplomaInput(false);
                 }}
               >
                 Annuler
@@ -415,7 +498,11 @@ const rechercherParMatricule = async () => {
               <button 
                 className="confirm-btn"
                 onClick={confirmerCreationDiplomes}
-                disabled={!titreDiplome || loading.creation}
+                disabled={
+                  !titreDiplome || 
+                  loading.creation || 
+                  (showCustomDiplomaInput && !customDiplomaName)
+                }
               >
                 {loading.creation ? "Création en cours..." : "Confirmer la création"}
               </button>
@@ -566,6 +653,12 @@ const rechercherParMatricule = async () => {
         }
         .confirm-btn:hover {
           background-color: #219955;
+        }
+        .hint-text {
+          font-size: 0.8rem;
+          color: #666;
+          margin-top: 0.5rem;
+          font-style: italic;
         }
         @media (max-width: 768px) {
           .filters, .search-box {

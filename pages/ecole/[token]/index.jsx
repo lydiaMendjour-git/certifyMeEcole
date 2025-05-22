@@ -8,6 +8,7 @@ import GestionFormations from "./GestionFormations";
 import CreerDiplomeEcole from "./CreerDiplomeEcole";
 import { useRouter } from 'next/router';
 import jwt from 'jsonwebtoken';
+import ListeDiplomesEcole from "./ListeDiplomesEcole.jsx";
 
 function App() {
   const colors = {
@@ -229,6 +230,25 @@ function App() {
             <FaFileAlt style={{ marginRight: '0.8rem', fontSize: '1.1rem' }} />
             <span>Créer Diplômes</span>
           </motion.div>
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0.8rem 1.5rem',
+              margin: '0.5rem 1rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              color: activeSection === 'diplomes-crées' ? colors.primary : colors.textLight,
+              background: activeSection === 'diplomes-crées' ? colors.lightBg : 'transparent',
+              fontWeight: activeSection === 'diplomes-crées' ? '600' : '400',
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setActiveSection('diplomes-crées')}
+          >
+            <FaFileAlt style={{ marginRight: '0.8rem', fontSize: '1.1rem' }} />
+            <span>Vos Diplômes</span>
+          </motion.div>
         </div>
 
         {/* Main Content */}
@@ -241,6 +261,7 @@ function App() {
           {activeSection === 'integration-ecole' && <IntegrationEcole />}
           {activeSection === 'integration-etudiants' && <IntegrationEtudiantEcole />}
           {activeSection === 'creer-diplome' && <CreerDiplomeEcole />}
+          {activeSection === 'diplomes-crées' && <ListeDiplomesEcole />}
         </div>
       </div>
     </div>

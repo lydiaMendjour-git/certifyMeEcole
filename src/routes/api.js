@@ -50,13 +50,16 @@ const upload = multer({ storage });
 router.get('/universities', UniversityController.getUniversities);
 router.get('/universites-with-account', UniversityController.getAllUniversitiesWithAccount);
 router.get('/universites/:universityId', UniversityController.getUniversityById);
+// Routes pour les diplômes des universités
+router.get('/universites/:universityId/diplomes', DiplomasController.getUniversityDiplomas);
+router.delete('/:diplomaId/rejeter', DiplomasController.deleteUniversityDiploma);
 
 
 // 10. Ecole routes
 router.get('/ecoles', EcoleController.getEcoles); // Récupérer toutes les écoles
 router.get('/ecoles-with-account', EcoleController.getAllEcolesWithAccount); // Récupérer les écoles avec compte
 router.get('/ecoles/:ecoleId', EcoleController.getEcoleById); // Récupérer une école par ID
-router.get('/ecoles-by-role', EcoleController.getEcolesByRole);
+router.get('/ecoles-by-role/:role', EcoleController.getEcolesByRole);
 
 
 // 2. Student routes
@@ -161,6 +164,7 @@ router.post('/:diplomaId/valider', DiplomasController.validateDiploma);
 router.get('/:universityId/diplomes-valides', DiplomasController.getValidatedDiplomas);
 router.post('/:diplomaId/rejeter', DiplomasController.rejectDiploma);
 
+
 //route pour demander un diplôme par un étudiant
 router.post('/demande-diplome', DiplomasController.demanderDiplome);
 //route pour verifier un diplôme par url
@@ -169,6 +173,8 @@ router.get('/verifier-diplome/:hash', DiplomasController.verifierDiplome);
 
 // Récupérer les étudiants d'une formation
 router.get('/formations/:formationId/etudiants', FormationController.getStudentsByFormation);
+
+router.get('/formations/:formationId/:idAnnee', EtudiantEcoleController.getStudentsByFormationAndAnnee);
 
 
 // Créer des diplômes pour école
@@ -180,5 +186,22 @@ router.get('/ecoles-auth', authController.getEcolesAUTH);
 router.get('/verify-email/:token', authController.verifyEmail);
 router.post('/login', authController.login);
 
+
+
+// Routes pour les diplômes des écoles
+router.get('/ecoles/:ecoleId/diplomes-a-valider', DiplomasController.getEcoleDiplomasToValidate);
+router.post('/ecoles/:ecoleId/valider-tous-diplomes', DiplomasController.validateAllEcoleDiplomas);
+router.post('/ecoles/diplomes/:diplomaId/valider', DiplomasController.validateEcoleDiploma);
+router.get('/ecoles/:ecoleId/diplomes-valides', DiplomasController.getValidatedEcoleDiplomas);
+router.post('/ecoles/diplomes/:diplomaId/rejeter', DiplomasController.rejectEcoleDiploma);
+router.post('/demande-diplome-ecole', DiplomasController.demanderDiplomeEcole);
+router.get('/verifier-diplome-ecole/:hash', DiplomasController.verifierDiplomeEcole);
+router.get('/ecoles/:ecoleId/diplomes', DiplomasController.getEcoleDiplomes);
+router.delete('/ecoles/diplomes/:diplomaId', DiplomasController.deleteEcoleDiploma);
+
+router.get('/departments/:departmentId/students', StudentController.getStudentsByDepartment);
+router.post('/students/create', StudentController.createStudent);
+router.put('/students/update/:id', StudentController.updateStudent);
+router.delete('/students/delete/:id', StudentController.deleteStudent);
 
 export default router;

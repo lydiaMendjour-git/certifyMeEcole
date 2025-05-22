@@ -53,7 +53,13 @@ switch(response.data.account.role) {
   case 'ECOLE': {
   const safeToken = encodeURIComponent(response.data.token);
   localStorage.setItem('ecole_token', response.data.token);
-  console.log("Token reçu:", response.data.token); // Pour débogage
+  
+  // Stockez aussi les infos de l'école si nécessaire
+  localStorage.setItem('ecole_id', response.data.account.ecole?.id);
+  localStorage.setItem('ecole_name', response.data.account.ecole?.name);
+  localStorage.setItem('ecole_type', response.data.account.ecole?.role);
+  
+  console.log("Infos école:", response.data.account.ecole);
   router.push(`/ecole/${safeToken}`);
   break;
 }

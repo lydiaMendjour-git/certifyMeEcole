@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import { FaShieldAlt } from 'react-icons/fa';
 import { FaInfoCircle } from 'react-icons/fa';
 import {FaHistory, FaCopy } from 'react-icons/fa';
+
 const colors = {
   primary: '#2F855A',
   secondary: '#2D3748',
@@ -22,7 +23,8 @@ const DemandeDiplome = () => {
   const [step, setStep] = useState(1); // 1: Choix type, 2: Choix établissement, 3: Formulaire
   const [diplomaType, setDiplomaType] = useState(null);
   const [universities, setUniversities] = useState([]);
-  const [selectedUniversity, setSelectedUniversity] = useState(null);
+  const [ecoles, setEcoles] = useState([]);
+  const [selectedInstitution, setSelectedInstitution] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -36,36 +38,40 @@ const DemandeDiplome = () => {
     etablissement: ''
   });
 
-  // Récupérer les universités avec compte
+  // Récupérer les établissements avec compte
   useEffect(() => {
-    if (step === 2 && diplomaType === 'Universite') {
-      const fetchUniversities = async () => {
+    if (step === 2) {
+      const fetchInstitutions = async () => {
         try {
-          const response = await axios.get('http://localhost:5000/universites-with-account');
-          setUniversities(response.data);
+          if (diplomaType === 'Universite') {
+            const response = await axios.get('http://localhost:5000/universites-with-account');
+            setUniversities(response.data);
+          } else if (diplomaType === 'Ecole') {
+            const response = await axios.get('http://localhost:5000/ecoles-with-account');
+            setEcoles(response.data);
+          }
         } catch (err) {
-          console.error('Erreur lors de la récupération des universités:', err);
-          setError('Impossible de charger les universités');
+          console.error('Erreur lors de la récupération des établissements:', err);
+          setError('Impossible de charger les établissements');
         }
       };
-      fetchUniversities();
+      fetchInstitutions();
     }
   }, [step, diplomaType]);
-
-  const handleTypeSelection = (type) => {
+const handleTypeSelection = (type) => {
     setDiplomaType(type);
     setFormData(prev => ({
       ...prev,
-      diplomaType: type // Mise à jour du type de diplôme
+      diplomaType: type
     }));
     setStep(2);
   };
 
-  const handleUniversitySelect = (university) => {
-    setSelectedUniversity(university);
+  const handleInstitutionSelect = (institution) => {
+    setSelectedInstitution(institution);
     setFormData(prev => ({
       ...prev,
-      etablissement: university.nomUni
+      etablissement: institution.nomUni || institution.nomEcole
     }));
     setStep(3);
   };
@@ -81,7 +87,7 @@ const DemandeDiplome = () => {
   const formatDateForBackend = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    return date.toISOString().split('T')[0];
   };
   
   const handleSubmit = async (e) => {
@@ -90,40 +96,36 @@ const DemandeDiplome = () => {
     setError(null);
 
     try {
-      // Formatage des données avant envoi
-      const formattedData = {
-        ...formData,
-        birthDate: formatDateForBackend(formData.birthDate),
-        dateOfIssue: formatDateForBackend(formData.dateOfIssue)
-      };
+        const formattedData = {
+            ...formData,
+            birthDate: formatDateForBackend(formData.birthDate),
+            dateOfIssue: formatDateForBackend(formData.dateOfIssue)
+        };
 
-      console.log('Données envoyées:', formattedData); // Log pour débogage
+        const endpoint = diplomaType === 'Universite' 
+            ? 'http://localhost:5000/demande-diplome' 
+            : 'http://localhost:5000/demande-diplome-ecole';
 
-      const response = await axios.post('http://localhost:5000/demande-diplome', formattedData, {
-        headers: {
-          'Content-Type': 'application/json'
+        const response = await axios.post(endpoint, formattedData);
+        
+        if (response.data.success) {
+            setSuccess({
+                message: response.data.message,
+                verificationMessage: response.data.verificationMessage,
+                verificationLink: response.data.verificationLink,
+                verificationRemarque: response.data.verificationRemarque,
+                diplomaInfo: response.data.diplomaInfo
+            });
+        } else {
+            setSuccess({
+                message: response.data.message || 'Votre demande a été enregistrée',
+                suggestion: response.data.suggestion
+            });
         }
-      });
-
-      if (response.data.success) {
-        setSuccess({
-          message: response.data.message,
-          verificationMessage: response.data.verificationMessage,
-          verificationLink: response.data.verificationLink,
-          verificationRemarque: response.data.verificationRemarque,
-          diplomaInfo: response.data.diplomaInfo
-        });
-      } else {
-        setSuccess({
-          message: response.data.message || 'Votre demande a été enregistrée',
-          suggestion: response.data.suggestion
-        });
-      }
     } catch (err) {
-      console.error('Erreur:', err.response?.data || err);
-      setError(err.response?.data?.message || 'Une erreur est survenue');
+        setError(err.response?.data?.message || 'Une erreur est survenue');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
   if (success) {
@@ -331,8 +333,8 @@ const DemandeDiplome = () => {
         </div>
       )}
 
-      {/* Étape 2: Choix de l'université */}
-      {step === 2 && diplomaType === 'Universite' && (
+      {/* Étape 2: Choix de l'établissement */}
+      {step === 2 && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
             <button 
@@ -346,7 +348,11 @@ const DemandeDiplome = () => {
             >
               &larr;
             </button>
-            <h3 style={{ color: colors.textDark }}>Sélectionnez votre université</h3>
+            <h3 style={{ color: colors.textDark }}>
+              {diplomaType === 'Universite' 
+                ? 'Sélectionnez votre université' 
+                : 'Sélectionnez votre école'}
+            </h3>
           </div>
 
           {loading ? (
@@ -363,12 +369,12 @@ const DemandeDiplome = () => {
               gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
               gap: '1rem'
             }}>
-              {universities.map(university => (
+              {(diplomaType === 'Universite' ? universities : ecoles).map(institution => (
                 <motion.div
-                  key={university.idUni}
+                  key={institution.idUni || institution.idEcole}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => handleUniversitySelect(university)}
+                  onClick={() => handleInstitutionSelect(institution)}
                   style={{
                     padding: '1.5rem',
                     border: `1px solid ${colors.border}`,
@@ -388,14 +394,18 @@ const DemandeDiplome = () => {
                       width: '40px',
                       height: '40px',
                       borderRadius: '50%',
-                      backgroundColor: `${colors.primary}20`,
+                      backgroundColor: `${diplomaType === 'Universite' ? colors.primary : colors.accent}20`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
-                      <FaUniversity size={18} color={colors.primary} />
+                      {diplomaType === 'Universite' 
+                        ? <FaUniversity size={18} color={colors.primary} /> 
+                        : <FaSchool size={18} color={colors.accent} />}
                     </div>
-                    <h4 style={{ margin: 0, color: colors.textDark }}>{university.nomUni}</h4>
+                    <h4 style={{ margin: 0, color: colors.textDark }}>
+                      {institution.nomUni || institution.nomEcole}
+                    </h4>
                   </div>
                   <p style={{ 
                     margin: 0, 
@@ -406,7 +416,7 @@ const DemandeDiplome = () => {
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
                   }}>
-                    {university.adresseUni}
+                    {institution.adresseUni || institution.adresseEcole || 'Aucune adresse disponible'}
                   </p>
                 </motion.div>
               ))}

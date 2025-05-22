@@ -27,16 +27,18 @@ export default {
       }
     },
     async getAnneesByUniversity(req, res) {
-      const idUni = parseInt(req.params.idUni);
-  
-      try {
-        const annees = await Annee.getAnneesByUniversity(idUni);
-        res.json(annees);
-      } catch (error) {
-        console.error("Erreur lors du chargement des années:", error);
-        res.status(500).json({ error: "Erreur serveur lors du chargement des années." });
-      }
-    }
+  const idUni = parseInt(req.params.idUni);
+  console.log("Requested university ID:", idUni); // Ajoutez ce log
+
+  try {
+    const annees = await Annee.getAnneesByUniversity(idUni);
+    console.log("Annees found:", annees); // Ajoutez ce log
+    res.json(annees);
+  } catch (error) {
+    console.error("Erreur lors du chargement des années:", error);
+    res.status(500).json({ error: "Erreur serveur lors du chargement des années." });
+  }
+}
     
  
 };

@@ -28,18 +28,25 @@ const VerificationDiplome = () => {
     setVerificationResult(null);
 
     try {
-      // Extraire le hash de l'URL
-      const hash = verificationUrl.split('/verifier-diplome/').pop().split('/')[0].split('?')[0];
+      // Détecter le type de lien (université ou école)
+      const isEcoleLink = verificationUrl.includes('/verifier-diplome-ecole/');
+      const endpoint = isEcoleLink 
+        ? 'http://localhost:5000/verifier-diplome-ecole/' 
+        : 'http://localhost:5000/verifier-diplome/';
+      
+      const hash = verificationUrl.split(isEcoleLink ? '/verifier-diplome-ecole/' : '/verifier-diplome/')
+                       .pop().split('/')[0].split('?')[0];
       
       if (!hash) {
         throw new Error("Le format de l'URL est invalide");
       }
 
-      const response = await axios.get(`http://localhost:5000/verifier-diplome/${hash}`);
+      const response = await axios.get(`${endpoint}${hash}`);
       
       setVerificationResult({
         success: true,
-        data: response.data
+        data: response.data,
+        isEcole: isEcoleLink
       });
     } catch (err) {
       console.error('Erreur vérification:', err);
@@ -175,7 +182,7 @@ const VerificationDiplome = () => {
             color: colors.primary
           }}>
             <FaCheckCircle size={24} />
-            <h3 style={{ margin: 0 }}>Diplôme vérifié avec succès</h3>
+            <h3 style={{ margin: 0 }}>Diplôme {verificationResult.isEcole ? "d'école" : ''} vérifié avec succès</h3>
           </div>
 
           <div style={{
@@ -205,6 +212,12 @@ const VerificationDiplome = () => {
               <div>
                 <p style={{ color: colors.textLight, marginBottom: '0.5rem' }}>Spécialité</p>
                 <p style={{ fontWeight: '500' }}>{verificationResult.data.speciality}</p>
+              </div>
+            )}
+            {verificationResult.isEcole && verificationResult.data.mention && (
+              <div>
+                <p style={{ color: colors.textLight, marginBottom: '0.5rem' }}>Mention</p>
+                <p style={{ fontWeight: '500' }}>{verificationResult.data.mention}</p>
               </div>
             )}
           </div>

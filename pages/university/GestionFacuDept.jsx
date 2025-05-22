@@ -1,16 +1,45 @@
+import Header from './Header.jsx';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
+import { motion } from 'framer-motion';
+import StudentManagement from './StudentManagement';
+
+const colors = {
+  primary: '#2F855A',
+  secondary: '#2D3748',
+  accent: '#38A169',
+  lightBg: '#F7FAFC',
+  darkBg: '#1A202C',
+  textDark: '#1C1C1C',
+  textLight: '#718096',
+  border: '#CBD5E0',
+  success: '#2F855A',
+  error: '#C53030',
+  warning: '#D69E2E'
+};
+
 const GestionFacuDept = () => {
-      const router = useRouter();
+  const router = useRouter();
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState({});
   const [showFacultyForm, setShowFacultyForm] = useState(false);
-  const [newFacultyName, setNewFacultyName] = useState('');
   const [expandedFaculties, setExpandedFaculties] = useState({});
-  const [showDeptForms, setShowDeptForms] = useState({});
-  const [newDeptNames, setNewDeptNames] = useState({});
-
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  
+  // États pour les formulaires modaux
+  const [facultyFormData, setFacultyFormData] = useState({
+    idFaculty: null,
+    nomFaculty: '',
+    idUni: null
+  });
+  
+  const [departmentFormData, setDepartmentFormData] = useState({
+    idDepart: null,
+    nomDepart: '',
+    idFaculty: null,
+    idUni: null
+  });
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
   const [universityId, setUniversityId] = useState(null);
@@ -19,27 +48,23 @@ const GestionFacuDept = () => {
   useEffect(() => {
     const storedId = localStorage.getItem('university_id');
     const storedToken = localStorage.getItem('uni_token');
-
     setUniversityId(storedId);
     setToken(storedToken);
+    if (storedId) {
+      setFacultyFormData(prev => ({ ...prev, idUni: parseInt(storedId) }));
+    }
   }, []);
 
+  // Chargement des facultés
   useEffect(() => {
     if (!universityId || !token) return;
 
     const loadFaculties = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/faculties/${universityId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("Faculties API Response:", response.data); 
-        setFaculties(response.data.data); 
-        setDepartments({});
-        setExpandedFaculties({});
-        setShowDeptForms({});
-        setNewDeptNames({});
+        setFaculties(response.data.data);
       } catch (error) {
         console.error('Error loading faculties:', error);
       }
@@ -48,509 +73,887 @@ const GestionFacuDept = () => {
     loadFaculties();
   }, [universityId, token]);
 
+  // Chargement des départements
   const loadDepartments = async (facultyId) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/departments/${facultyId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setDepartments((prev) => ({
-        ...prev,
-        [facultyId]: response.data,
-      }));
+      setDepartments(prev => ({ ...prev, [facultyId]: response.data }));
     } catch (error) {
       console.error('Error loading departments:', error);
     }
   };
 
+  // Toggle expansion des facultés
   const toggleFacultyExpansion = async (facultyId) => {
-    setExpandedFaculties((prev) => ({
-      ...prev,
-      [facultyId]: !prev[facultyId],
-    }));
-
+    setExpandedFaculties(prev => ({ ...prev, [facultyId]: !prev[facultyId] }));
     if (!expandedFaculties[facultyId] && !departments[facultyId]) {
       await loadDepartments(facultyId);
     }
   };
 
-  const handleAddFaculty = async (e) => {
+  // Gestion des formulaires
+  const openFacultyForm = (faculty = null) => {
+    setFacultyFormData({
+      idFaculty: faculty?.idFaculty || null,
+      nomFaculty: faculty?.nomFaculty || '',
+      idUni: universityId
+    });
+    setShowFacultyForm(true);
+  };
+
+  const openDepartmentForm = (facultyId, department = null) => {
+    setDepartmentFormData({
+      idDepart: department?.idDepart || null,
+      nomDepart: department?.nomDepart || '',
+      idFaculty: department?.idFaculty || facultyId,
+      idUni: universityId
+    });
+  };
+
+  // Actions CRUD
+  const handleFacultySubmit = async (e) => {
     e.preventDefault();
-    if (!newFacultyName.trim()) {
-      alert('Veuillez entrer un nom de faculté');
-      return;
-    }
-
     try {
-        await axios.post(`${API_BASE_URL}/facultiescreate`, {
-            nomFaculty: newFacultyName, // ce champ est bon SI le modèle l'accepte
-            idUni: universityId,   
-                 // ⚠️ change `universityId` en `idUni` pour que le backend le reconnaisse
-          },  {
-            headers: { Authorization: `Bearer ${token}` },
-          });    console.log('Faculty creation data:', {
-            nomFaculty: newFacultyName,
-            idUni: universityId,
-          });
-                 
-
-      const updatedFaculties = await axios.get(`${API_BASE_URL}/faculties/${universityId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFaculties(updatedFaculties.data.data);
-      setNewFacultyName('');
+      if (facultyFormData.idFaculty) {
+        // Mise à jour
+        await axios.put(
+          `${API_BASE_URL}/facultiesupdate/${facultyFormData.idFaculty}`,
+          { nomFaculty: facultyFormData.nomFaculty },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        setFaculties(prev => prev.map(f => 
+          f.idFaculty === facultyFormData.idFaculty 
+            ? { ...f, nomFaculty: facultyFormData.nomFaculty } 
+            : f
+        ));
+      } else {
+        // Création
+        const response = await axios.post(
+          `${API_BASE_URL}/facultiescreate`,
+          facultyFormData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        setFaculties(prev => [...prev, response.data]);
+      }
+      
       setShowFacultyForm(false);
     } catch (error) {
-      console.error('Error:', error);
-      alert(`Erreur: ${error.message}`);
+      console.error('Error saving faculty:', error);
     }
   };
 
-  const handleUpdateFaculty = async (facultyId, currentName) => {
-    const newName = prompt('Entrez le nouveau nom:', currentName);
-    if (!newName || newName.trim() === currentName) return;
-
+  const handleDepartmentSubmit = async (e) => {
+    e.preventDefault();
     try {
-        await axios.put(`${API_BASE_URL}/facultiesupdate/${facultyId}`, {
-             nomFaculty: newName.trim(),
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
+      if (departmentFormData.idDepart) {
+        // Mise à jour
+        await axios.put(
+          `${API_BASE_URL}/departmentsupdate/${departmentFormData.idDepart}`,
+          { 
+            nomDepart: departmentFormData.nomDepart,
+            idFaculty: departmentFormData.idFaculty
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        // Mettre à jour l'état local
+        setDepartments(prev => {
+          const updatedDepartments = { ...prev };
+          
+          // Retirer de l'ancienne faculté si nécessaire
+          Object.keys(updatedDepartments).forEach(fId => {
+            updatedDepartments[fId] = updatedDepartments[fId].filter(
+              d => d.idDepart !== departmentFormData.idDepart
+            );
+          });
+          
+          // Ajouter à la nouvelle faculté
+          if (!updatedDepartments[departmentFormData.idFaculty]) {
+            updatedDepartments[departmentFormData.idFaculty] = [];
+          }
+          
+          updatedDepartments[departmentFormData.idFaculty].push({
+            idDepart: departmentFormData.idDepart,
+            nomDepart: departmentFormData.nomDepart,
+            idFaculty: departmentFormData.idFaculty,
+            idUni: departmentFormData.idUni
+          });
+          
+          return updatedDepartments;
+        });
+      } else {
+        // Création
+        const response = await axios.post(
+          `${API_BASE_URL}/departmentscreate`,
+          departmentFormData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        await loadDepartments(departmentFormData.idFaculty);
+      }
+      
+      setDepartmentFormData({
+        idDepart: null,
+        nomDepart: '',
+        idFaculty: null,
+        idUni: null
       });
-
-      setFaculties((prev) =>
-        prev.map((f) =>
-          f.idFaculty === facultyId ? { ...f, nomFaculty: newName.trim() } : f
-        )
-      );
     } catch (error) {
-      console.error('Error updating faculty:', error);
-      alert('Échec de la mise à jour');
+      console.error('Error saving department:', error);
     }
   };
 
   const handleDeleteFaculty = async (facultyId) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette faculté?')) return;
+    if (!confirm('Supprimer cette faculté et tous ses départements?')) return;
 
     try {
-        await axios.delete(`${API_BASE_URL}/facultiesdelete/${facultyId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          
-
-      setFaculties((prev) => prev.filter((f) => f.idFaculty !== facultyId));
+      await axios.delete(`${API_BASE_URL}/facultiesdelete/${facultyId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      setFaculties(prev => prev.filter(f => f.idFaculty !== facultyId));
+      setDepartments(prev => {
+        const newDepts = { ...prev };
+        delete newDepts[facultyId];
+        return newDepts;
+      });
     } catch (error) {
       console.error('Error deleting faculty:', error);
-      alert('Échec de la suppression');
     }
   };
-
-  const toggleDeptForm = (facultyId) => {
-    setShowDeptForms((prev) => ({
-      ...prev,
-      [facultyId]: !prev[facultyId],
-    }));
-    setNewDeptNames((prev) => ({
-      ...prev,
-      [facultyId]: '',
-    }));
-  };
-
-  const handleAddDepartment = async (facultyId) => {
-    const deptName = newDeptNames[facultyId]?.trim();
-    if (!deptName) {
-      alert('Veuillez entrer un nom valide');
-      return;
-    }
-
-    try {
-      await axios.post(`${API_BASE_URL}/departmentscreate`, {
-        nomDepart: deptName,
-       idFaculty : facultyId,
-       idUni: universityId,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      await loadDepartments(facultyId);
-
-      setShowDeptForms((prev) => ({
-        ...prev,
-        [facultyId]: false,
-      }));
-      setNewDeptNames((prev) => ({
-        ...prev,
-        [facultyId]: '',
-      }));
-    } catch (error) {
-      console.error('Error:', error);
-      alert(`Erreur: ${error.message}`);
-    }
-  };
-
-  const handleUpdateDepartment = async (deptId, currentName) => {
-    const newName = prompt('Entrez le nouveau nom:', currentName);
-    if (!newName || newName.trim() === currentName) return;
-
-    try {
-        await axios.put(`${API_BASE_URL}/departmentsupdate/${deptId}`, {
-            nomDepart: newName.trim(),
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const facultyId = Object.keys(departments).find((fId) =>
-        departments[fId].some((d) => d.idDepart === deptId)
-      );
-
-      if (facultyId) {
-        setDepartments((prev) => ({
-          ...prev,
-          [facultyId]: prev[facultyId].map((d) =>
-            d.idDepart === deptId ? { ...d, nomDepart: newName.trim() } : d
-          ),
-        }));
-      }
-    } catch (error) {
-      console.error('Error updating department:', error);
-      alert('Échec de la mise à jour');
-    }
-  };
-  const handleGoBack = () => {
-    const token = localStorage.getItem('uni_token');
-    if (token) {
-      const safeToken = encodeURIComponent(token);
-      router.push(`/university/IntegrationBd?token=${safeToken}`);
-    }  };
-
 
   const handleDeleteDepartment = async (deptId) => {
-    if (!confirm('Supprimer ce département ?')) return;
+    if (!confirm('Supprimer ce département et tous ses étudiants?')) return;
 
     try {
-        await axios.delete(`${API_BASE_URL}/departmentsdelete/${deptId}`, {
-            headers: { Authorization: `Bearer ${token}` },
+      await axios.delete(`${API_BASE_URL}/departmentsdelete/${deptId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const facultyId = Object.keys(departments).find((fId) =>
-        departments[fId].some((d) => d.idDepart === deptId)
+      const facultyId = Object.keys(departments).find(fId => 
+        departments[fId].some(d => d.idDepart === deptId)
       );
 
       if (facultyId) {
-        setDepartments((prev) => ({
+        setDepartments(prev => ({
           ...prev,
-          [facultyId]: prev[facultyId].filter((d) => d.idDepart !== deptId),
+          [facultyId]: prev[facultyId].filter(d => d.idDepart !== deptId),
         }));
       }
     } catch (error) {
       console.error('Error deleting department:', error);
-      alert('Échec de la suppression');
     }
   };
 
+  const handleGoBack = () => {
+    const safeToken = encodeURIComponent(token);
+    router.push(`/university/IntegrationBd?token=${safeToken}`);
+  };
+
   return (
-    <div className="admin-dashboard">
-        {/* Animated Header with Gradient */}
-        <header className="dashboard-header">
-            <div className="header-content">
-                <h1 className="animated-title">
-                    <span className="title-text">Gestion des facultés</span>
-                    <span className="title-underline"></span>
-                </h1>
-                <div className="header-decoration">
-                    <div className="decoration-circle"></div>
-                    <div className="decoration-circle"></div>
-                    <div className="decoration-circle"></div>
-                </div>
+    <div style={{ 
+      backgroundColor: colors.lightBg,
+      minHeight: '100vh',
+      marginTop: '5rem',
+      fontFamily: "'Inter', -apple-system, sans-serif"
+    }}>
+      <Header token={token} />
+    
+      <div style={{ 
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '0 2rem'
+      }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+            marginBottom: '2rem',
+            border: `1px solid ${colors.border}`
+          }}
+        >
+          <div style={{
+            padding: '1.5rem',
+            borderBottom: `1px solid ${colors.border}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h2 style={{ 
+              fontSize: '1.25rem',
+              fontWeight: '600',
+              margin: 0,
+              color: colors.textDark,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.primary}>
+                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Facultés
+            </h2>
+            <div style={{display: "flex"}}>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleGoBack}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  backgroundColor: 'transparent',
+                  color: colors.textDark,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  marginRight: '1rem'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 12H5M12 19l-7-7 7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Retour
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => openFacultyForm()}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  backgroundColor: colors.accent,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Nouvelle faculté
+              </motion.button>
             </div>
-        </header>
+          </div>
 
-        {/* Main Content with Floating Card */}
-        <main className="dashboard-main">
-            <div className="floating-card-container">
-                {/* Faculty Panel with Glass Morphism Effect */}
-                <section className="glass-card faculty-panel">
-                    {/* Card Header with Animated Actions */}
-                    <div className="card-header animated-header">
-                        <h2 className="card-title">
-                            <i className="fas fa-list-alt title-icon"></i>
-                            Liste des facultés
-                        </h2>
-                        <button 
-                            className="add-button floating-action-btn"
-                            onClick={() => setShowFacultyForm(true)}
-                            aria-label="Ajouter une nouvelle faculté"
-                        >
-                            <i className="fas fa-plus"></i>
-                            <span className="btn-tooltip">Nouvelle faculté</span>
-                            <span className="btn-pulse"></span>
-                        </button>
-                    </div>
-
-                    {/* Faculty List with Smooth Transitions */}
-                    <div className="card-body scrollable-content">
-                        {faculties.length === 0 ? (
-                            <div className="empty-state animated-fadein">
-                                <div className="empty-illustration">
-                                    <i className="fas fa-university"></i>
-                                    <div className="empty-wave"></div>
-                                </div>
-                                <p className="empty-message">Aucune faculté enregistrée</p>
-                                <button 
-                                    className="btn btn-gradient"
-                                    onClick={() => setShowFacultyForm(true)}
-                                >
-                                    Créer votre première faculté
-                                </button>
-                            </div>
-                        ) : (
-                            <ul className="accordion-list">
-                                {faculties.map(faculty => (
-                                    <li 
-                                        key={faculty.idFaculty} 
-                                        className={`accordion-item ${expandedFaculties[faculty.idFaculty] ? 'expanded' : ''}`}
-                                    >
-                                        {/* Faculty Item with Hover Effects */}
-                                        <div 
-                                            className="item-header hover-scale"
-                                            onClick={() => toggleFacultyExpansion(faculty.idFaculty)}
-                                        >
-                                            <div className="item-indicator">
-                                                <i className="fas fa-chevron-down accordion-icon"></i>
-                                                <div className="faculty-badge">{faculty.nomFaculty.charAt(0)}</div>
-                                            </div>
-                                            <span className="item-title">{faculty.nomFaculty}</span>
-                                            <div className="item-actions">
-                                                <button 
-                                                    className="icon-btn edit-btn tooltip"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleUpdateFaculty(faculty.idFaculty, faculty.nomFaculty);
-                                                    }}
-                                                    data-tooltip="Modifier"
-                                                >
-                                                    <i className="fas fa-pen"></i>
-                                                </button>
-                                                <button 
-                                                    className="icon-btn delete-btn tooltip"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteFaculty(faculty.idFaculty);
-                                                    }}
-                                                    data-tooltip="Supprimer"
-                                                >
-                                                    <i className="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Departments Section with Slide Animation */}
-                                        <div className="accordion-content">
-                                            <div className="sub-panel">
-                                                <div className="sub-header">
-                                                    <h3 className="sub-title">
-                                                        <i className="fas fa-sitemap"></i>
-                                                        Départements
-                                                    </h3>
-                                                    <button 
-                                                        className="add-sub-button"
-                                                        onClick={() => toggleDeptForm(faculty.idFaculty)}
-                                                    >
-                                                        <i className="fas fa-plus-circle"></i>
-                                                        Ajouter département
-                                                    </button>
-                                                </div>
-                                                
-                                                {/* Department List with Staggered Animation */}
-                                                <ul className="staggered-list">
-                                                    {departments[faculty.idFaculty] ? (
-                                                        departments[faculty.idFaculty].length === 0 ? (
-                                                            <li className="empty-sub-state">
-                                                                <i className="fas fa-inbox"></i>
-                                                                <p>Aucun département enregistré</p>
-                                                            </li>
-                                                        ) : (
-                                                            departments[faculty.idFaculty].map((dept, index) => (
-                                                                <li 
-                                                                    key={dept.idDepart} 
-                                                                    className="sub-item"
-                                                                    style={{ animationDelay: `${index * 0.05}s` }}
-                                                                >
-                                                                    <div className="sub-item-content">
-                                                                        <i className="fas fa-folder sub-item-icon"></i>
-                                                                        <span className="sub-item-title">{dept.nomDepart}</span>
-                                                                        <div className="sub-item-actions">
-                                                                            <button 
-                                                                                className="icon-btn sub-edit-btn"
-                                                                                onClick={() => handleUpdateDepartment(dept.idDepart, dept.nomDepart)}
-                                                                            >
-                                                                                <i className="fas fa-pen-fancy"></i>
-                                                                            </button>
-                                                                            <button 
-                                                                                className="icon-btn sub-delete-btn"
-                                                                                onClick={() => handleDeleteDepartment(dept.idDepart)}
-                                                                            >
-                                                                                <i className="fas fa-trash-alt"></i>
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="sub-item-progress"></div>
-                                                                </li>
-                                                            ))
-                                                        )
-                                                    ) : (
-                                                        <li className="loading-sub-state">
-                                                            <div className="loading-spinner"></div>
-                                                            <span>Chargement des départements...</span>
-                                                        </li>
-                                                    )}
-                                                </ul>
-
-                                                {/* Add Department Form with Floating Label */}
-                                                {showDeptForms[faculty.idFaculty] && (
-                                                    <form 
-                                                        className="floating-form"
-                                                        onSubmit={(e) => {
-                                                            e.preventDefault();
-                                                            handleAddDepartment(faculty.idFaculty);
-                                                        }}
-                                                    >
-                                                        <div className="form-group floating-group">
-                                                            <input 
-                                                                type="text" 
-                                                                id={`deptName-${faculty.idFaculty}`}
-                                                                className="floating-input"
-                                                                placeholder=" "
-                                                                value={newDeptNames[faculty.idFaculty] || ''}
-                                                                onChange={(e) => setNewDeptNames(prev => ({
-                                                                    ...prev,
-                                                                    [faculty.idFaculty]: e.target.value
-                                                                }))}
-                                                                autoFocus
-                                                            />
-                                                            <label 
-                                                                htmlFor={`deptName-${faculty.idFaculty}`}
-                                                                className="floating-label"
-                                                            >
-                                                                Nom du département
-                                                            </label>
-                                                            <div className="form-actions">
-                                                                <button 
-                                                                    type="submit" 
-                                                                    className="btn btn-success btn-animated"
-                                                                    disabled={!newDeptNames[faculty.idFaculty]?.trim()}
-                                                                >
-                                                                    <span className="btn-text">Enregistrer</span>
-                                                                    <span className="btn-icon">
-                                                                        <i className="fas fa-check"></i>
-                                                                    </span>
-                                                                </button>
-                                                                <button 
-                                                                    type="button" 
-                                                                    className="btn btn-cancel btn-animated"
-                                                                    onClick={() => toggleDeptForm(faculty.idFaculty)}
-                                                                >
-                                                                    <span className="btn-text">Annuler</span>
-                                                                    <span className="btn-icon">
-                                                                        <i className="fas fa-times"></i>
-                                                                    </span>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </form>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-
-                    {/* Add Faculty Form with Modal Effect */}
-                    {showFacultyForm && (
-                        <div className="modal-overlay">
-                            <form 
-                                className="modal-form"
-                                onSubmit={handleAddFaculty}
-
-                            >
-                                <div className="modal-header">
-                                    <h3>Nouvelle faculté</h3>
-                                    <button 
-                                        type="button" 
-                                        className="modal-close"
-                                        onClick={() => {
-                                            setShowFacultyForm(false);
-                                            setNewFacultyName('');
-                                        }}
-                                    >
-                                        <i className="fas fa-times"></i>
-                                    </button>
-                                </div>
-                                <div className="modal-body">
-                                    <div className="form-group floating-group">
-                                        <input 
-                                            type="text" 
-                                            id="facultyName"
-                                            className="floating-input"
-                                            placeholder=" "
-                                            value={newFacultyName}
-                                             onChange={(e) => setNewFacultyName(e.target.value)}
-                                            autoFocus
-                                        />
-                                        <label htmlFor="facultyName" className="floating-label">
-                                            Nom de la faculté
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className="modal-footer">
-                                    <button 
-                                        type="submit" 
-                                        className="btn btn-primary btn-animated"
-                                        disabled={!newFacultyName.trim()}
-                                    >
-                                        <span className="btn-text">Créer</span>
-                                        <span className="btn-icon">
-                                            <i className="fas fa-plus"></i>
-                                        </span>
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        className="btn btn-outline"
-                                        onClick={() => {
-                                            setShowFacultyForm(false);
-                                            setNewFacultyName('');
-                                        }}
-                                    >
-                                        Annuler
-                                    </button>
-                                </div>
-                            </form>
+          <div style={{ padding: '1.5rem' }}>
+            {faculties.length === 0 ? (
+              <div style={{ 
+                textAlign: 'center',
+                padding: '2rem',
+                color: colors.textLight
+              }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={colors.textLight} style={{ opacity: 0.5 }}>
+                  <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <p style={{ margin: '1rem 0 0' }}>Aucune faculté enregistrée</p>
+              </div>
+            ) : (
+              <div style={{ 
+                display: 'grid',
+                gap: '0.75rem'
+              }}>
+                {faculties.map(faculty => (
+                  <div 
+                    key={faculty.idFaculty}
+                    style={{
+                      border: `1px solid ${colors.border}`,
+                      borderRadius: '8px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <div 
+                      style={{
+                        padding: '1rem',
+                        backgroundColor: expandedFaculties[faculty.idFaculty] ? colors.lightBg : 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s ease'
+                      }}
+                      onClick={() => toggleFacultyExpansion(faculty.idFaculty)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '8px',
+                          backgroundColor: colors.primary,
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '600'
+                        }}>
+                          {faculty.nomFaculty.charAt(0).toUpperCase()}
                         </div>
+                        
+                        <span style={{ 
+                          fontWeight: '500',
+                          color: colors.textDark
+                        }}>
+                          {faculty.nomFaculty}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openFacultyForm(faculty);
+                          }}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: '#EBF8F2',
+                            color: colors.success,
+                            border: `1px solid ${colors.success}`,
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              backgroundColor: '#D5F5E3'
+                            }
+                          }}
+                        >
+                          Modifier
+                        </button>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteFaculty(faculty.idFaculty);
+                          }}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: '#FEEBEB',
+                            color: colors.error,
+                            border: `1px solid ${colors.error}`,
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              backgroundColor: '#FADBD8'
+                            }
+                          }}
+                        >
+                          Supprimer
+                        </button>
+                        
+                        <motion.div
+                          animate={{ rotate: expandedFaculties[faculty.idFaculty] ? 180 : 0 }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.textDark}>
+                            <path d="M19 9l-7 7-7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </motion.div>
+                      </div>
+                    </div>
+
+                    {expandedFaculties[faculty.idFaculty] && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        style={{
+                          padding: '1rem',
+                          backgroundColor: colors.lightBg,
+                          borderTop: `1px solid ${colors.border}`
+                        }}
+                      >
+                        <div style={{ 
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '1rem'
+                        }}>
+                          <h3 style={{ 
+                            fontSize: '1rem',
+                            fontWeight: '600',
+                            margin: 0,
+                            color: colors.textDark,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                          }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={colors.textDark}>
+                              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M9 22V12h6v10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            Départements
+                          </h3>
+                          
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDepartmentForm(faculty.idFaculty);
+                            }}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              backgroundColor: colors.accent,
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.875rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem'
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            Ajouter
+                          </motion.button>
+                        </div>
+
+                        {departments[faculty.idFaculty] ? (
+                          departments[faculty.idFaculty].length === 0 ? (
+                            <div style={{ 
+                              textAlign: 'center',
+                              padding: '1rem',
+                              color: colors.textLight,
+                              fontSize: '0.875rem'
+                            }}>
+                              Aucun département enregistré
+                            </div>
+                          ) : (
+                            <div style={{
+                              display: 'grid',
+                              gap: '0.5rem'
+                            }}>
+                              {departments[faculty.idFaculty].map(dept => (
+                                <div 
+                                  key={dept.idDepart}
+                                  style={{
+                                    padding: '0.75rem 1rem',
+                                    backgroundColor: 'white',
+                                    borderRadius: '6px',
+                                    border: `1px solid ${colors.border}`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                  }}
+                                >
+                                  <div style={{ 
+                                    color: colors.textDark,
+                                    fontSize: '0.875rem',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                  }}>
+                                    {dept.nomDepart}
+                                    <span style={{
+                                      fontSize: '0.75rem',
+                                      color: colors.textLight,
+                                      marginTop: '0.25rem'
+                                    }}>
+                                      Faculté: {faculties.find(f => f.idFaculty === dept.idFaculty)?.nomFaculty || 'Inconnue'}
+                                    </span>
+                                  </div>
+                                  
+                                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openDepartmentForm(faculty.idFaculty, dept);
+                                      }}
+                                      style={{
+                                        padding: '0.5rem 1rem',
+                                        backgroundColor: '#EBF8F2',
+                                        color: colors.success,
+                                        border: `1px solid ${colors.success}`,
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        transition: 'all 0.2s ease',
+                                        '&:hover': {
+                                          backgroundColor: '#D5F5E3'
+                                        }
+                                      }}
+                                    >
+                                      Modifier
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteDepartment(dept.idDepart);
+                                      }}
+                                      style={{
+                                        padding: '0.5rem 1rem',
+                                        backgroundColor: '#FEEBEB',
+                                        color: colors.error,
+                                        border: `1px solid ${colors.error}`,
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        transition: 'all 0.2s ease',
+                                        '&:hover': {
+                                          backgroundColor: '#FADBD8'
+                                        }
+                                      }}
+                                    >
+                                      Supprimer
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedDepartment(dept.idDepart);
+                                      }}
+                                      style={{
+                                        padding: '0.5rem 1rem',
+                                        backgroundColor: '#E6F7FF',
+                                        color: '#1890ff',
+                                        border: '1px solid #1890ff',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        transition: 'all 0.2s ease',
+                                        '&:hover': {
+                                          backgroundColor: '#BAE7FF'
+                                        }
+                                      }}
+                                    >
+                                      Gestion Étudiants
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        ) : (
+                          <div style={{ 
+                            textAlign: 'center',
+                            padding: '1rem',
+                            color: colors.textLight
+                          }}>
+                            Chargement des départements...
+                          </div>
+                        )}
+                      </motion.div>
                     )}
-                </section>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
 
-                {/* Back Button with Cool Hover Effect */}
-                <button
-                    onClick={handleGoBack}
-                    className="back-btn floating-btn"
-                >
-                    <i className="fas fa-arrow-left"></i>
-                    <span className="btn-tooltip">Retour</span>
-                    <span className="btn-wave"></span>
-                </button>
+      {/* Modal pour les facultés */}
+      {showFacultyForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '500px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+            }}
+          >
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: `1px solid ${colors.border}`
+            }}>
+              <h3 style={{ 
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                margin: 0,
+                color: colors.textDark
+              }}>
+                {facultyFormData.idFaculty ? 'Modifier la faculté' : 'Nouvelle faculté'}
+              </h3>
             </div>
-        </main>
-
-        {/* Animated Background Elements */}
-        <div className="background-elements">
-            <div className="bg-circle circle-1"></div>
-            <div className="bg-circle circle-2"></div>
-            <div className="bg-circle circle-3"></div>
+            
+            <form onSubmit={handleFacultySubmit} style={{ padding: '1.5rem' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  color: colors.textDark,
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
+                }}>
+                  Nom de la faculté
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Faculté des Sciences"
+                  value={facultyFormData.nomFaculty}
+                  onChange={(e) => setFacultyFormData({
+                    ...facultyFormData,
+                    nomFaculty: e.target.value
+                  })}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '6px',
+                    border: `1px solid ${colors.border}`,
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  autoFocus
+                  required
+                />
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.75rem'
+              }}>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={() => setShowFacultyForm(false)}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    backgroundColor: 'transparent',
+                    color: colors.textDark,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Annuler
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={!facultyFormData.nomFaculty.trim()}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    backgroundColor: !facultyFormData.nomFaculty.trim() ? `${colors.accent}80` : colors.accent,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: !facultyFormData.nomFaculty.trim() ? 'not-allowed' : 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {facultyFormData.idFaculty ? 'Mettre à jour' : 'Enregistrer'}
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
         </div>
+      )}
+
+      {/* Modal pour les départements */}
+      {departmentFormData.idFaculty && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '500px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+            }}
+          >
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: `1px solid ${colors.border}`
+            }}>
+              <h3 style={{ 
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                margin: 0,
+                color: colors.textDark
+              }}>
+                {departmentFormData.idDepart ? 'Modifier le département' : 'Nouveau département'}
+              </h3>
+            </div>
+            
+            <form onSubmit={handleDepartmentSubmit} style={{ padding: '1.5rem' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  color: colors.textDark,
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
+                }}>
+                  Nom du département
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Informatique"
+                  value={departmentFormData.nomDepart}
+                  onChange={(e) => setDepartmentFormData({
+                    ...departmentFormData,
+                    nomDepart: e.target.value
+                  })}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '6px',
+                    border: `1px solid ${colors.border}`,
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  color: colors.textDark,
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
+                }}>
+                  Faculté associée
+                </label>
+                <select
+                  value={departmentFormData.idFaculty}
+                  onChange={(e) => setDepartmentFormData({
+                    ...departmentFormData,
+                    idFaculty: parseInt(e.target.value)
+                  })}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '6px',
+                    border: `1px solid ${colors.border}`,
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    transition: 'all 0.2s ease',
+                    backgroundColor: 'white'
+                  }}
+                  required
+                >
+                  <option value="">Sélectionnez une faculté</option>
+                  {faculties.map(faculty => (
+                    <option key={faculty.idFaculty} value={faculty.idFaculty}>
+                      {faculty.nomFaculty}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.75rem'
+              }}>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={() => setDepartmentFormData({
+                    idDepart: null,
+                    nomDepart: '',
+                    idFaculty: null,
+                    idUni: null
+                  })}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    backgroundColor: 'transparent',
+                    color: colors.textDark,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Annuler
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={!departmentFormData.nomDepart.trim() || !departmentFormData.idFaculty}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    backgroundColor: !departmentFormData.nomDepart.trim() || !departmentFormData.idFaculty ? `${colors.accent}80` : colors.accent,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: !departmentFormData.nomDepart.trim() || !departmentFormData.idFaculty ? 'not-allowed' : 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {departmentFormData.idDepart ? 'Mettre à jour' : 'Enregistrer'}
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {selectedDepartment && (
+        <StudentManagement 
+          departmentId={selectedDepartment} 
+          onClose={() => setSelectedDepartment(null)} 
+        />
+      )}
     </div>
-);
+  );
 };
 
 export default GestionFacuDept;

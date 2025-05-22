@@ -132,12 +132,7 @@ const IntegrationBd = () => {
         router.push(`/university/${safeToken}`);
       }  };
 
-      const handleGoGestion = () => {
-        const token = localStorage.getItem('uni_token');
-        if (token) {
-          const safeToken = encodeURIComponent(token);
-          router.push(`/university/GestionFacuDept?token=${safeToken}`);
-  }  };
+     
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
@@ -198,12 +193,7 @@ const IntegrationBd = () => {
         >
           Retour
         </button>
-        <button
-          onClick={handleGoGestion}
-          style={{ backgroundColor: '#e74c3c', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '20px' }}
-        >
-          Gestion
-        </button>
+       
 
       </div>
       

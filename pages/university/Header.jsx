@@ -3,6 +3,8 @@ import { FaUserCog, FaBell, FaDatabase, FaChevronDown, FaSignOutAlt, FaCog, FaUs
 import { motion, AnimatePresence } from 'framer-motion';
 import IntegrationBd from './IntegrationBd.jsx';
 import IntegrationEtudiant from './IntegrationEtudiant.jsx'; // Importer le composant IntegrationEtudiant
+import ListeDiplomesUniversite from './ListeDiplomesUniversite'; 
+import GestionFacuDept from './GestionFacuDept.jsx';
 import { useRouter } from 'next/router';
 
 
@@ -13,8 +15,6 @@ const Header = () => {
   const [unreadNotifications, setUnreadNotifications] = useState(3);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showDatabaseOptions, setShowDatabaseOptions] = useState(false);
-  const [showIntegrationBd, setShowIntegrationBd] = useState(false);
-  const [showIntegrationEtudiant, setShowIntegrationEtudiant] = useState(false); // Nouvel état pour l'intégration des étudiants
   const [selectedOption, setSelectedOption] = useState(null);
 
   useEffect(() => {
@@ -46,11 +46,6 @@ const Header = () => {
 
   const toggleDatabaseOptions = () => {
     setShowDatabaseOptions(!showDatabaseOptions);
-    if (showIntegrationBd || showIntegrationEtudiant) {
-      setShowIntegrationBd(false);
-      setShowIntegrationEtudiant(false); // Ferme l'intégration d'étudiants si c'est ouvert
-      setSelectedOption(null);
-    }
   };
 
   const handleOptionSelect = (option) => {
@@ -59,15 +54,18 @@ const Header = () => {
     const token = localStorage.getItem('uni_token');
     if (token) {
       const safeToken = encodeURIComponent(token);
-    if (option === 'faculty') {
-      router.push(`/university/IntegrationBd?token=${safeToken}`);
-
-    } else if (option === 'students') {
-      router.push(`/university/IntegrationEtudiant?token=${safeToken}`); // Afficher l'intégration des étudiants
-    }}
+      if (option === 'faculty') {
+        router.push(`/university/IntegrationBd?token=${safeToken}`);
+      } else if (option === 'students') {
+        router.push(`/university/IntegrationEtudiant?token=${safeToken}`);
+      } else if (option === 'diplomas') { // Nouvelle option pour les diplômes
+        router.push(`/university/ListeDiplomesUniversite?token=${safeToken}`); // Redirige vers la gestion des diplômes
+      }
+      else if (option === 'gestion') { // Nouvelle option pour les diplômes
+        router.push(`/university/GestionFacuDept?token=${safeToken}`); // Redirige vers la gestion des diplômes
+      }
+    }
   };
-
-
 
   return (
     <div className="app-container">
@@ -105,73 +103,32 @@ const Header = () => {
                     className="database-option"
                     onClick={() => handleOptionSelect('faculty')}
                   >
-                    Intégration et gestion faculté et départements
+                    Intégration des facultés et des départements
                   </button>
                   <button 
                     className="database-option"
                     onClick={() => handleOptionSelect('students')}
                   >
-                    Intégration et gestion d'étudiants
+                    Intégration d'étudiants
+                  </button>
+                  <button 
+                    className="database-option"
+                    onClick={() => handleOptionSelect('diplomas')} // Nouvelle option
+                  >
+                    Gestion des diplômes
+                  </button>
+                  <button 
+                    className="database-option"
+                    onClick={() => handleOptionSelect('gestion')} // Nouvelle option
+                  >
+                    Gestion de la bd 
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          <div className="notification-container">
-            <motion.button 
-              className={`notification-button ${unreadNotifications > 0 ? 'has-unread' : ''}`}
-              whileHover={{ y: -1 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setShowNotifications(!showNotifications)}
-              aria-label="Notifications"
-            >
-              <FaBell className="icon" />
-              {unreadNotifications > 0 && (
-                <span className="unread-count">{unreadNotifications}</span>
-              )}
-            </motion.button>
-
-            <AnimatePresence>
-              {showNotifications && (
-                <motion.div 
-                  className="notification-panel"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ type: 'spring', damping: 25 }}
-                >
-                  <div className="panel-header">
-                    <h3>Notifications</h3>
-                    <button 
-                      className="mark-all-read"
-                      onClick={markAllAsRead}
-                      disabled={unreadNotifications === 0}
-                    >
-                      Tout marquer comme lu
-                    </button>
-                  </div>
-                  <div className="notification-items">
-                    {notifications.map(notif => (
-                      <div 
-                        key={notif.id} 
-                        className={`notification-item ${notif.read ? '' : 'unread'}`}
-                        onClick={() => !notif.read && markAsRead(notif.id)}
-                      >
-                        <div className="notification-content">
-                          <p className="notification-text">{notif.text}</p>
-                          <span className="notification-time">{notif.time}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="panel-footer">
-                    <button className="view-all">Voir toutes les notifications</button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+         
 
           <div className="user-menu-container">
             <motion.button 

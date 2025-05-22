@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from 'framer-motion';
-import { FaUniversity, FaSearch, FaChartLine, FaUserGraduate, FaCheckCircle } from 'react-icons/fa';
+import { FaUniversity, FaSearch, FaChartLine, FaUserGraduate, FaCheckCircle, FaSchool } from 'react-icons/fa';
 import Header from "./HeaderMinistry.jsx";
 import { useRouter } from 'next/router';
 import jwt from 'jsonwebtoken';
@@ -12,94 +12,122 @@ function App() {
   const safeToken = encodeURIComponent(token || ''); 
 
   const colors = {
-    primary: '#2F855A',       // Vert validation – sérieux, rassurant
-    secondary: '#2D3748',     // Gris charbon – autorité, modernité
-    accent: '#38A169',        // Vert accent – pour boutons/CTA
-    lightBg: '#F7FAFC',       // Fond clair neutre – pro et clean
-    darkBg: '#1A202C',        // Fond sombre – header/footer élégant
-    textDark: '#1C1C1C',      // Texte principal – bonne lisibilité
-    textLight: '#718096',     // Texte secondaire – descriptions, placeholders
-    border: '#CBD5E0',        // Bordures subtiles – pour structurer sans surcharger
-    success: '#2F855A',       // Succès – même que primary pour cohérence
-    error: '#C53030',         // Erreur – rouge sérieux
-    warning: '#D69E2E'        // Avertissement – or doux, pas criard
+    primary: '#2F855A',
+    secondary: '#2D3748',
+    accent: '#38A169',
+    lightBg: '#F7FAFC',
+    darkBg: '#1A202C',
+    textDark: '#1C1C1C',
+    textLight: '#718096',
+    border: '#CBD5E0',
+    success: '#2F855A',
+    error: '#C53030',
+    warning: '#D69E2E'
   };
-  
   
   const [ministryInfo, setMinistryInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [universities, setUniversities] = useState([]);
-  const [selectedUni, setSelectedUni] = useState(null);
+  const [schools, setSchools] = useState([]);
+  const [selectedInstitution, setSelectedInstitution] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('universities');
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn("Chargement trop long, vérifiez la connexion");
-        setAuthError("Timeout de chargement");
-        setLoading(false);
-      }
-    }, 50000); // 10 secondes
-  
-    return () => clearTimeout(timeout);
-  }, [loading]);
-useEffect(() => {
-  console.log("Token from URL:", token); // Debug
-}, [token]);
-
-  
+    console.log("Token from URL:", token);
+  }, [token]);
 
   useEffect(() => {
     const verifyTokenAndLoadData = async () => {
       try {
-        setLoading(true); // Commence le chargement
-        setAuthError(null); // Reset les erreurs
-  
-        // 1. Vérification du token
-        if (!token) {
+        setLoading(true);
+        setAuthError(null);
+
+         if (!token) {
           const storedToken = localStorage.getItem('ministere_token');
+          console.log("[DEBUG] No token in URL, checking localStorage...");
           if (storedToken) {
+            console.log("[DEBUG] Found token in localStorage, redirecting...");
             router.push(`/ministry/${storedToken}`);
             return;
           }
           throw new Error("Token manquant");
         }
-  
-        // 2. Décodage et vérification
+
+        
+        console.log("[DEBUG] Decoding token...");
         const decoded = jwt.decode(token);
-        console.log("Token décodé:", decoded);
-  
+        console.log("[DEBUG] Token décodé:", decoded);
+
         if (!decoded || decoded.role?.trim().toUpperCase() !== 'MINISTERE') {
+          console.error("[ERROR] Accès non autorisé - Role invalide");
           throw new Error("Accès non autorisé");
         }
-  
-        // 3. Mise à jour du state et localStorage
+
+        console.log(`[DEBUG] Ministère connecté: ID=${decoded.ministereId}, Type=${decoded.ministereType}`);
         setMinistryInfo({
           id: decoded.ministereId,
           name: decoded.ministereName,
+          type: decoded.ministereType
         });
+
+        if (decoded.ministereType === 'ENSEIGNEMENT_SUPERIEUR') {
+          console.log("[DEBUG] Chargement des données pour ENSEIGNEMENT_SUPERIEUR...");
+          try {
+  const [universitiesRes, schoolsRes] = await Promise.all([
+    axios.get('http://localhost:5000/universites-with-account'),
+    axios.get('http://localhost:5000/ecoles-by-role/ECOLE_SUPERIEURE')
+  ]);
   
-        localStorage.setItem('ministere_token', token);
-        localStorage.setItem('ministere_id', decoded.ministereId);
-        localStorage.setItem('ministere_name', decoded.ministereName);
+  console.log("Universités:", universitiesRes.data);
+  console.log("Écoles supérieures:", schoolsRes.data);
   
-        // 4. Chargement des données
-        const response = await axios.get('http://localhost:5000/universites-with-account');
-        setUniversities(response.data);
+  setUniversities(universitiesRes.data);
+  setSchools(schoolsRes.data.data || []);
+
+} catch (error) {
+  console.error("Erreur de chargement:", error);
+  if (error.response) {
+    // Erreur provenant du serveur
+    console.error("Détails de l'erreur:", {
+      status: error.response.status,
+      data: error.response.data
+    });
+  } else if (error.request) {
+    // La requête a été faite mais aucune réponse n'a été reçue
+    console.error("Pas de réponse du serveur");
+  } else {
+    // Erreur lors de la configuration de la requête
+    console.error("Erreur de configuration:", error.message);
+  }
   
+  setAuthError("Erreur de chargement des données. Veuillez réessayer.");
+}
+        } 
+          else if (decoded.ministereType === 'FORMATION_PROFESSIONNELLE') {
+          console.log("[DEBUG] Chargement des données pour FORMATION_PROFESSIONNELLE...");
+        const schoolResponse = await axios.get('http://localhost:5000/ecoles-by-role/ECOLE_FORMATION');
+console.log("Réponse complète écoles formation:", schoolResponse.data);
+// Extraire le tableau du champ 'data' de la réponse
+setSchools(schoolResponse.data.data || []);
+          setActiveTab('schools');
+          setUniversities([]);
+        }
+
+        console.log("[DEBUG] Chargement des données terminé");
       } catch (error) {
-        console.error("Erreur:", error);
+        console.error("[ERROR] Erreur lors du chargement:", error);
         setAuthError(error.message);
-        localStorage.removeItem('ministere_token'); // Nettoyage
+        localStorage.removeItem('ministere_token');
       } finally {
-        setLoading(false); // <-- IMPORTANT: Toujours désactiver le loading
+        setLoading(false);
       }
     };
-  
+
     verifyTokenAndLoadData();
   }, [token, router]);
-  
+
   if (loading) return (
     <div style={{
       display: 'flex',
@@ -160,9 +188,164 @@ useEffect(() => {
     uni.nomUni.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredSchools = schools.filter(school =>
+    school.nomEcole.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const renderInstitutionCard = (institution, isSchool = false) => (
+    <motion.div
+      key={isSchool ? institution.idEcole : institution.idUni}
+      whileHover={{ y: -5, boxShadow: `0 10px 25px ${colors.primary}20` }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => setSelectedInstitution(institution)}
+      style={{
+        backgroundColor: 'white',
+        borderRadius: '15px',
+        padding: '1.5rem',
+        boxShadow: '0 5px 15px rgba(0,0,0,0.05)',
+        border: `1px solid ${colors.primary}20`,
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: '80px',
+        height: '80px',
+        borderRadius: '0 15px 0 50px',
+        background: `linear-gradient(135deg, ${colors.primary}20, ${colors.accent}20)`,
+        zIndex: 0
+      }} />
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        marginBottom: '1rem',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        <div style={{
+          width: '60px',
+          height: '60px',
+          borderRadius: '12px',
+          background: `linear-gradient(135deg, ${colors.lightBg}, ${colors.border})`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          {isSchool ? <FaSchool color="black" size={24} /> : <FaUniversity color="black" size={24} />}
+        </div>
+        <div>
+          <h3 style={{
+            fontSize: '1.3rem',
+            fontWeight: '700',
+            color: colors.textDark,
+            margin: 0
+          }}>
+            {isSchool ? institution.nomEcole : institution.nomUni}
+          </h3>
+          <p style={{
+            color: colors.textLight,
+            fontSize: '0.9rem',
+            margin: '0.3rem 0 0'
+          }}>
+            {isSchool ? institution.adresseEcole : institution.adresseUni}
+          </p>
+        </div>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '0.5rem',
+        marginTop: '1rem'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          backgroundColor: `${colors.primary}10`,
+          padding: '0.4rem 0.8rem',
+          borderRadius: '20px',
+          fontSize: '0.8rem',
+          color: colors.primary,
+          fontWeight: '600'
+        }}>
+          <FaUserGraduate size={12} />
+          <span>{isSchool ? 'École vérifiée' : 'Université vérifiée'}</span>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          backgroundColor: `${colors.accent}10`,
+          padding: '0.4rem 0.8rem',
+          borderRadius: '20px',
+          fontSize: '0.8rem',
+          color: colors.accent,
+          fontWeight: '600'
+        }}>
+          <FaCheckCircle size={12} />
+          <span>Compte actif</span>
+        </div>
+      </div>
+
+      <div style={{
+        marginTop: '1.5rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div>
+          <p style={{
+            color: colors.textLight,
+            fontSize: '0.8rem',
+            margin: '0.2rem 0'
+          }}>
+            Email: {isSchool ? institution.emailEcole : institution.emailUni}
+          </p>
+          <p style={{
+            color: colors.textLight,
+            fontSize: '0.8rem',
+            margin: '0.2rem 0'
+          }}>
+            Tél: {isSchool ? institution.telephoneEcole : institution.telephoneUni}
+          </p>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          style={{
+            backgroundColor: colors.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '0.5rem 1rem',
+            fontSize: '0.9rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <FaChartLine size={14} />
+          Statistiques
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+
   return (
     <div style={{
-      overflowX: 'hidden' ,
+      overflowX: 'hidden',
       backgroundColor: colors.lightBg,
       minHeight: '100vh',
       fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
@@ -174,7 +357,46 @@ useEffect(() => {
         margin: '0 auto',
         padding: '2rem 1rem'
       }}>
-        {/* Section de recherche */}
+        <div style={{ 
+          display: 'flex', 
+          marginBottom: '1.5rem', 
+          borderBottom: `1px solid ${colors.border}`
+        }}>
+          {ministryInfo?.type === 'ENSEIGNEMENT_SUPERIEUR' && (
+            <button
+              onClick={() => setActiveTab('universities')}
+              style={{
+                padding: '0.8rem 1.5rem',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontWeight: '600',
+                color: activeTab === 'universities' ? colors.primary : colors.textLight,
+                borderBottom: activeTab === 'universities' ? `3px solid ${colors.primary}` : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              Universités
+            </button>
+          )}
+
+          <button
+            onClick={() => setActiveTab('schools')}
+            style={{
+              padding: '0.8rem 1.5rem',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontWeight: '600',
+              color: activeTab === 'schools' ? colors.primary : colors.textLight,
+              borderBottom: activeTab === 'schools' ? `3px solid ${colors.primary}` : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            {ministryInfo?.type === 'FORMATION_PROFESSIONNELLE' ? 'Écoles de Formation' : 'Écoles Supérieures'}
+          </button>
+        </div>
+        
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -194,7 +416,7 @@ useEffect(() => {
             color: colors.textDark,
             margin: 0
           }}>
-            Gestion des Universités : 
+            {activeTab === 'universities' ? 'Gestion des Universités' : 'Gestion des Écoles'}
           </h2>
           
           <div style={{
@@ -210,7 +432,7 @@ useEffect(() => {
             }} />
             <input
               type="text"
-              placeholder="Rechercher une université..."
+              placeholder={activeTab === 'universities' ? "Rechercher une université..." : "Rechercher une école..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -230,168 +452,20 @@ useEffect(() => {
           </div>
         </motion.div>
 
-        {/* Liste des universités */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
           gap: '1.5rem',
           marginTop: '2rem'
         }}>
-          {filteredUniversities.map((uni) => (
-            <motion.div
-              key={uni.idUni}
-              whileHover={{ y: -5, boxShadow: `0 10px 25px ${colors.primary}20` }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setSelectedUni(uni)}
-              style={{
-                backgroundColor: 'white',
-                borderRadius: '15px',
-                padding: '1.5rem',
-                boxShadow: '0 5px 15px rgba(0,0,0,0.05)',
-                border: `1px solid ${colors.primary}20`,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: '80px',
-                height: '80px',
-                borderRadius: '0 15px 0 50px',
-                background: `linear-gradient(135deg, ${colors.primary}20, ${colors.accent}20)`,
-                zIndex: 0
-              }} />
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                marginBottom: '1rem',
-                position: 'relative',
-                zIndex: 1
-              }}>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '12px',
-                  background: `linear-gradient(135deg, ${colors.lightBg}, ${colors.border})`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <FaUniversity color="black" size={24} />
-                </div>
-                <div>
-                  <h3 style={{
-                    fontSize: '1.3rem',
-                    fontWeight: '700',
-                    color: colors.textDark,
-                    margin: 0
-                  }}>
-                    {uni.nomUni}
-                  </h3>
-                  <p style={{
-                    color: colors.textLight,
-                    fontSize: '0.9rem',
-                    margin: '0.3rem 0 0'
-                  }}>
-                    {uni.adresseUni}
-                  </p>
-                </div>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '0.5rem',
-                marginTop: '1rem'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: `${colors.primary}10`,
-                  padding: '0.4rem 0.8rem',
-                  borderRadius: '20px',
-                  fontSize: '0.8rem',
-                  color: colors.primary,
-                  fontWeight: '600'
-                }}>
-                  <FaUserGraduate size={12} />
-                  <span>Université vérifiée</span>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: `${colors.accent}10`,
-                  padding: '0.4rem 0.8rem',
-                  borderRadius: '20px',
-                  fontSize: '0.8rem',
-                  color: colors.accent,
-                  fontWeight: '600'
-                }}>
-                  <FaCheckCircle size={12} />
-                  <span>Compte actif</span>
-                </div>
-              </div>
-
-              <div style={{
-                marginTop: '1.5rem',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <p style={{
-                    color: colors.textLight,
-                    fontSize: '0.8rem',
-                    margin: '0.2rem 0'
-                  }}>
-                    Email: {uni.emailUni}
-                  </p>
-                  <p style={{
-                    color: colors.textLight,
-                    fontSize: '0.8rem',
-                    margin: '0.2rem 0'
-                  }}>
-                    Tél: {uni.telephoneUni}
-                  </p>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  style={{
-                    backgroundColor: colors.primary,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '0.5rem 1rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <FaChartLine size={14} />
-                  Statistiques
-                </motion.button>
-              </div>
-            </motion.div>
-          ))}
+          {activeTab === 'universities' 
+            ? filteredUniversities.map(uni => renderInstitutionCard(uni, false))
+            : filteredSchools.map(school => renderInstitutionCard(school, true))
+          }
         </div>
       </div>
 
-      {/* Modal pour les détails de l'université */}
-      {selectedUni && (
+      {selectedInstitution && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -409,7 +483,7 @@ useEffect(() => {
             zIndex: 1000,
             padding: '1rem'
           }}
-          onClick={() => setSelectedUni(null)}
+          onClick={() => setSelectedInstitution(null)}
         >
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
@@ -428,7 +502,7 @@ useEffect(() => {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => setSelectedUni(null)}
+              onClick={() => setSelectedInstitution(null)}
               style={{
                 position: 'absolute',
                 top: '20px',
@@ -459,7 +533,10 @@ useEffect(() => {
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <FaUniversity color="white" size={30} />
+                {activeTab === 'universities' ? 
+                  <FaUniversity color="white" size={30} /> : 
+                  <FaSchool color="white" size={30} />
+                }
               </div>
               <div>
                 <h2 style={{
@@ -468,13 +545,13 @@ useEffect(() => {
                   color: colors.textDark,
                   margin: '0 0 0.5rem'
                 }}>
-                  {selectedUni.nomUni}
+                  {activeTab === 'universities' ? selectedInstitution.nomUni : selectedInstitution.nomEcole}
                 </h2>
                 <p style={{
                   color: colors.textLight,
                   margin: '0'
                 }}>
-                  {selectedUni.adresseUni}
+                  {activeTab === 'universities' ? selectedInstitution.adresseUni : selectedInstitution.adresseEcole}
                 </p>
               </div>
             </div>
@@ -506,7 +583,7 @@ useEffect(() => {
                     margin: '0 0 1rem'
                   }}>
                     <span style={{ fontWeight: '600', minWidth: '100px' }}>Email:</span>
-                    <span>{selectedUni.emailUni}</span>
+                    <span>{activeTab === 'universities' ? selectedInstitution.emailUni : selectedInstitution.emailEcole}</span>
                   </p>
                   <p style={{
                     display: 'flex',
@@ -515,15 +592,7 @@ useEffect(() => {
                     margin: '0 0 1rem'
                   }}>
                     <span style={{ fontWeight: '600', minWidth: '100px' }}>Téléphone:</span>
-                    <span>{selectedUni.telephoneUni}</span>
-                  </p>
-                  <p style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    margin: '0'
-                  }}>
-                    
+                    <span>{activeTab === 'universities' ? selectedInstitution.telephoneUni : selectedInstitution.telephoneEcole}</span>
                   </p>
                 </div>
               </div>
@@ -549,7 +618,7 @@ useEffect(() => {
                     margin: '0 0 1rem'
                   }}>
                     <span style={{ fontWeight: '600', minWidth: '100px' }}>Nom d'utilisateur:</span>
-                    <span>{selectedUni.account.username}</span>
+                    <span>{selectedInstitution.account.username}</span>
                   </p>
                   <p style={{
                     display: 'flex',
@@ -558,15 +627,7 @@ useEffect(() => {
                     margin: '0 0 1rem'
                   }}>
                     <span style={{ fontWeight: '600', minWidth: '100px' }}>Email:</span>
-                    <span>{selectedUni.account.email}</span>
-                  </p>
-                  <p style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    margin: '0'
-                  }}>
-                   
+                    <span>{selectedInstitution.account.email}</span>
                   </p>
                 </div>
               </div>
@@ -578,11 +639,16 @@ useEffect(() => {
               gap: '1rem',
               marginTop: '2rem'
             }}>
-              
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => router.push(`/ministry/${token}/DiplomeUniversite?universityId=${selectedUni.idUni}&token=${safeToken}`)}
+                onClick={() => {
+                  if (activeTab === 'universities') {
+                    router.push(`/ministry/${token}/DiplomeUniversite?universityId=${selectedInstitution.idUni}&token=${safeToken}`);
+                  } else {
+                    router.push(`/ministry/${token}/DiplomeEcole?ecoleId=${selectedInstitution.idEcole}&token=${safeToken}`);
+                  }
+                }}
                 style={{
                   backgroundColor: colors.primary,
                   color: 'white',

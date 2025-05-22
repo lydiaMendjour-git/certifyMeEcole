@@ -92,15 +92,16 @@ const register = async (req, res) => {
     }
 
   // Cas ECOLE
+// Cas ECOLE
 if (upperRole === ROLES.ECOLE) {
   try {
-    const { username, password, ecoleId, email, name, phone, roleEcole } = req.body;
+    const { username, password, ecoleId, email, name, phone, roleEcole, adresseEcole } = req.body;
 
     // Validation des données
-    if (!ecoleId || !email || !name) {
+    if (!ecoleId || !email || !name || !adresseEcole) {
       return res.status(400).json({ 
         error: "Données manquantes",
-        details: "ecoleId, email et name sont requis" 
+        details: "ecoleId, email, name et adresseEcole sont requis" 
       });
     }
 
@@ -138,13 +139,14 @@ if (upperRole === ROLES.ECOLE) {
         }
       });
 
-      // 2. Création de l'école
+      // 2. Création de l'école - INCLUDING adresseEcole NOW
       await tx.ecole.create({
         data: {
           nomEcole: ecoleOfficielle.nomEcole,
           telephoneEcole: ecoleOfficielle.telephoneEcole,
           emailEcole: ecoleOfficielle.emailEcole,
           role: ecoleOfficielle.role,
+          adresseEcole: adresseEcole, // Add this line
           accountId: nouveauCompte.id
         }
       });
@@ -401,7 +403,8 @@ const login = async (req, res) => {
       ...(account.role.toUpperCase() === 'ECOLE' && account.ecole && { 
     ecoleId: account.ecole.idEcole,
     ecoleName: account.ecole.nomEcole,
-    walletAddress: account.ecole.walletAddress // Ajoutez ceci si disponible
+    walletAddress: account.ecole.walletAddress ,// Ajoutez ceci si disponible
+    roleEcole: account.ecole.role
   }),
       ...(account.role === 'STUDENT' && account.etudiant && { 
         studentId: account.etudiant.idEtudiant,
@@ -410,9 +413,10 @@ const login = async (req, res) => {
         studentPrenom: account.etudiant.prenom
       }),
       ...(account.role === 'MINISTERE' && account.ministere && { 
-        ministereId: account.ministere.id,
-        ministereName: account.ministere.nomMinistere
-      })
+  ministereId: account.ministere.id,
+  ministereName: account.ministere.nomMinistere,
+  ministereType: account.ministere.typeMinistere // Ajout de cette ligne
+})
     };
 
     // Génération du token JWT

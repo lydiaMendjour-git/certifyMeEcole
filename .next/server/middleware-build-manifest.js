@@ -10,10 +10,10 @@ globalThis.__BUILD_MANIFEST = {
   "rootMainFiles": [],
   "rootMainFilesTree": {},
   "pages": {
-    "/": [
+    "/PageAcceuil/Login": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/index.js"
+      "static/chunks/pages/PageAcceuil/Login.js"
     ],
     "/_app": [
       "static/chunks/webpack.js",
@@ -24,6 +24,21 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
+    ],
+    "/ecole/[token]": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/ecole/[token].js"
+    ],
+    "/university/GestionFacuDept": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/university/GestionFacuDept.js"
+    ],
+    "/university/[token]": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/university/[token].js"
     ]
   },
   "ampFirstPages": []

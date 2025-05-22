@@ -2,5 +2,8 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js"
+  "/ecole/[token]": "pages/ecole/[token].js",
+  "/PageAcceuil/Login": "pages/PageAcceuil/Login.js",
+  "/university/GestionFacuDept": "pages/university/GestionFacuDept.js",
+  "/university/[token]": "pages/university/[token].js"
 }
